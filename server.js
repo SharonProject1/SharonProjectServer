@@ -8,11 +8,15 @@ const MAX_PLAYERS = 10;
 const MIN_PLAYERS = 3;
 const TIMEOUT_LIMIT = 200;  // *1/10초 대기시간
 const FRAME_PER_SECOND = 60;
+const MAX_PLAY_TIME = 60; // 60? 초
 
 let players = {}; // key: 플레이어 아이디, value: [대기 시간, 준비 여부]
+let activityCodes = [0]; // 아두이노가 다음 프레임에 해야할 일들
+
 var isPlaying = false;
 var isCounting = false;
 var isVoicing = false;
+var playFrame = 0;
 
 /**
  * 준비된 플레이어와 총 플레이어 수를 반환하는 함수
@@ -92,6 +96,7 @@ function PlayOnCounting(){
 
 /**게임 중 주기적으로 실행될 함수*/
 function PlayOnGame(){
+  playFrame += 1;
   /* Game Logic */
 };
 
@@ -177,7 +182,7 @@ app.get('/notready/:id', (req, res) => {
 });
 
 
-// 게임 상태 반환
+// 게임 상태 반환: 앱이 보내는 파트
 app.get('/state', (req, res)=>{
   let nop = 0;
   nop = NumOfPlayers();
@@ -189,10 +194,16 @@ app.get('/state', (req, res)=>{
     serverFPS: FRAME_PER_SECOND,
     leftCountDownFrame: leftCountDownFrame,
     numberOfPlayers: nop,
+    playFrame: playFrame
   });
 });
 
-
+// 아두이노는 다음 프레임에 무엇을 실행해야 하나요?
+app.get('/ard', (req, res)=>{
+  res.json({
+    do: activityCodes
+  });
+});
 
 // 탈락한 플레이어 처리
 app.get('/falled/:id', (req, res)=>{
