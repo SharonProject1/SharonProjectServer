@@ -32,6 +32,18 @@ function ReadyPlayers(){
 };
 
 /**
+ * 총 플레이어 인원 수를 반환하는 함수
+ * @returns Number of Players
+ */
+function NumOfPlayers(){
+  var people = 0;
+  for (let playerId in players){
+    people += 1;
+  }
+  return people;
+};
+
+/**
  * 게임을 시작하는 함수
  * @returns void
  */
@@ -65,9 +77,9 @@ function PlayOnReady(){
   console.log(players, temp);  // 현재 상태 로그로 남김
 };
 
-const COUNTDOWN_TIME = 5;
-let leftCountDownFrame = COUNTDOWN_TIME * FRAME_PER_SECOND;
 
+const COUNTDOWN_TIME = 5; // 카운트 다운 5초
+let leftCountDownFrame = COUNTDOWN_TIME * FRAME_PER_SECOND;
 /**카운트다운 중 주기적으로 실행될 함수*/
 function PlayOnCounting(){
   if (leftCountDownFrame > 0){
@@ -83,6 +95,8 @@ function PlayOnGame(){
   /* Game Logic */
 };
 
+
+//////////////////////////////////////////////////
 // 메인 페이지
 app.get('/', (req, res) => {
   res.send('Welcome To 무궁화 꽃 게임');
@@ -111,13 +125,18 @@ var t = 0;
 // 주기적으로 코드를 실행 (추후 주기는 변경될 수 있음)
 setInterval(() => {
   t = (t + 1) % FRAME_PER_SECOND // 0 <= t <= FPS-1
+  
   if (!isPlaying && !isCounting){
-    if (t % 6 == 0){
+    if (t % 6 == 0){ // 6프레임마다 실행
       PlayOnReady();
     }
-  } else if (isPlaying && !isCounting){
+  } 
+  
+  else if (isPlaying && !isCounting){
     PlayOnGame();
-  } else { // isCounting
+  } 
+  
+  else { // isCounting
     PlayOnCounting();
   }
 }, 1000/FRAME_PER_SECOND);  // 100ms마다 실행 : 10FPS
@@ -157,15 +176,23 @@ app.get('/notready/:id', (req, res) => {
   }
 });
 
-// 게임 진행 중 반환
-app.get('/isPlaying', (req, res)=>{
-  res.json({isPlaying: isPlaying});
+
+// 게임 상태 반환
+app.get('/state', (req, res)=>{
+  let nop = 0;
+  nop = NumOfPlayers();
+  
+  res.json({
+    isPlaying: isPlaying,
+    isVoicing: isVoicing,
+    isCounting: isCounting,
+    serverFPS: FRAME_PER_SECOND,
+    leftCountDownFrame: leftCountDownFrame,
+    numberOfPlayers: nop,
+  });
 });
 
-// '무궁화 꽃이 피었습니다' 음성이 나오고 있는지
-app.get('/isVoicing', (req, res)=>{
-  res.json({isVoicing: isVoicing});
-});
+
 
 // 탈락한 플레이어 처리
 app.get('/falled/:id', (req, res)=>{
