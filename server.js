@@ -18,6 +18,13 @@ var isCounting = false;
 var isVoicing = false;
 var playFrame = 0;
 
+
+// for arduino
+const ARD_TIMEOUT_LIMIT = 200; // 1/10초 대기시간
+
+var ardIsConnet = false;
+var ardLastCheckFrame = 0;
+
 /**
  * 준비된 플레이어와 총 플레이어 수를 반환하는 함수
  * @returns [readyPlayer<int>, Player<int>]
@@ -40,11 +47,7 @@ function ReadyPlayers(){
  * @returns Number of Players
  */
 function NumOfPlayers(){
-  var people = 0;
-  for (let playerId in players){
-    people += 1;
-  }
-  return people;
+  return players.length;
 };
 
 /**
@@ -55,7 +58,9 @@ function Start(){
   isCounting = true;
 }
 
-/**플레이어의 연결을 확인하는 함수*/
+/**
+ * 플레이어의 연결을 확인하는 함수
+ */
 function CheckConnect(){
   for (let playerId in players) {
     if (players[playerId][0] <= 0) {
@@ -65,6 +70,41 @@ function CheckConnect(){
       players[playerId][0] -= 1;  // 연결 확인 시간이 경과할 때마다 감소
     }
   }
+}
+
+/**
+ * 아두이노의 연결을 확인하는 함수
+ */
+function ArdCheckConnect(){
+  ardLastCheckFrame -= 1;
+  if (ardLastCheckFrame > 0){
+    ardIsConnet = true;
+  } else {
+    ardIsConnet = false;
+  }
+}
+
+/**
+ * 아두이노가 다음 프레임에 해야 할 일들을 추가하는 함수입니다.
+ *
+ * @description
+ * - 0: 아무 행동 없음
+ * - 1: 게임을 시작, 초기화 및 카운트다운 진행
+ * - 2: 음성 재생 시작
+ * - 3: 모터를 시계방향으로 회전
+ * - 4: 모터를 시계반대방향으로 회전
+ * - 5: 제한시간으로 인해 게임이 종료됨
+ * - 6: 플레이어가 한 명 남아 게임이 종료됨
+ */
+function ArdActivityCodeAdd(){
+  activityCodes = [0]
+}
+
+/**
+ * 아두이노가 다음 프레임에 해야할 일들 제거 함수
+ */
+function ArdActivityCodeRemove(){
+  activityCodes = [0]
 }
 
 /**시작 전 인원 모집에 주기적으로 실행될 함수*/
@@ -198,11 +238,26 @@ app.get('/state', (req, res)=>{
   });
 });
 
-// 아두이노는 다음 프레임에 무엇을 실행해야 하나요?
+// 아두이노는 다음 프레임에 무엇을 실행해야 하나요? + 연결 확인
 app.get('/ard', (req, res)=>{
+  ArdCheckConnect();
+  ArdActivityCodeAdd();
+
   res.json({
     do: activityCodes
   });
+
+  ArdActivityCodeRemove();
+});
+
+// 아두이노 음성 시작
+app.get('/ardIsVoicing', (req, res) => {
+  isVoicing = true;
+});
+
+// 아두이노 음성 종료
+app.get('/ardIsNotVoicing', (req, res) => {
+  isVoicing = false;
 });
 
 // 탈락한 플레이어 처리
