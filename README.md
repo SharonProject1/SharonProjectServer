@@ -60,7 +60,12 @@
   - **응답**:
     - `do`: 다음 행동 코드 배열
    
-
+### 아두이노 관련 엔드포인트
+  - **`GET /ardIsVoicing`**
+    - 아두이노에서 음성이 시작되면 서버에 알립니다.
+   
+  - **`GET /ardIsNotVoicing`**
+    - 아두이노에서 음성이 종료되면 서버에 알립니다.
 
 ## About activityCodes (다음 행동 코드 배열)
 - 아두이노는 서버에게 주기적으로 GET 요청을 보내 activityCodes를 반환받아 행동합니다.
