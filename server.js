@@ -8,22 +8,27 @@ const MAX_PLAYERS = 10;
 const MIN_PLAYERS = 3;
 const TIMEOUT_LIMIT = 200;  // *1/10초 대기시간
 const FRAME_PER_SECOND = 60;
-const MAX_PLAY_TIME = 60; // 60? 초
+const MAX_PLAY_TIME = 180; // 180? 초
+const DECREASE_RATIO = 0.9;
 
 let players = {}; // key: 플레이어 아이디, value: [대기 시간, 준비 여부]
 let activityCodes = [0]; // 아두이노가 다음 프레임에 해야할 일들
+let minLoopFrame = 50;
+let maxLoopFrame = 200;
+let loopFrameArray = [];
 
 var isPlaying = false;
 var isCounting = false;
 var isVoicing = false;
 var playFrame = 0;
 
+var leftLoopFrame = 0;
 
 // for arduino
 const ARD_TIMEOUT_LIMIT = 200; // 1/10초 대기시간
 
-var ardIsConnet = false;
-var ardLastCheckFrame = 0;
+var ardIsConnet = false; // 아두이노 연결 관련
+var ardLastCheckFrame = 0; // 아두이노 연결 관련
 
 /**
  * 준비된 플레이어와 총 플레이어 수를 반환하는 함수
@@ -51,11 +56,72 @@ function NumOfPlayers(){
 };
 
 /**
- * 게임을 시작하는 함수
+ * 두 실수 사이의 랜덤 값을 구하는 함수
+ * @param {var} min
+ * @param {var} max
+ * @returns RandomNumber
+ */
+function Randoms(min, max){
+  return (max-min)*Math.random()+min;
+}
+
+/**
+ * 배열의 평균 값을 반환하는 함수
+ * @param {let} arr
+ * @returns Average of Array
+ */
+function Averages(arr){
+  var sum = 0;
+  for (let e in arr) sum += e;
+  return sum / arr.length;
+}
+
+/**
+ * 다음 minLoopFrame, maxLoopFrame을 결정하는 함수
+ * @returns void
+ */
+function NextRandom(){
+  let a = Averages(loopFrameArray);
+  let diff = maxLoopFrame - minLoopFrame;
+  let mid = (maxLoopFrame + minLoopFrame) / 2;
+
+  mid *= DECREASE_RATIO;
+  diff = diff*DECREASE_RATIO + mid - a;
+
+  minLoopFrame, maxLoopFrame = mid - diff, mid + diff;
+}
+
+/**
+ * 게임 시작 카운트 다운을 시작하는 함수
+ * @returns void
+ */
+function StartCount(){
+  isCounting = true;
+}
+
+/**
+ * 게임을 시작하는 함수 (Run only once)
  * @returns void
  */
 function Start(){
-  isCounting = true;
+  console.log("게임을 시작하겠습니다!");
+  isCounting = false;
+  isPlaying = true;
+}
+
+/**
+ * 음성 시작 함수
+ * @reruns void
+ */
+function DoVoice(){
+  leftLoopFrame = Randoms(minLoopFrame, maxLoopFrame);
+  console.log(`Voice! Next Loop Frame: ${leftLoopFrame}`);
+  loopFrameArray.push(leftLoopFrame);
+
+  activityCodes.push(2); // 음성을 재생
+  activityCodes.push(3); // 모터 회전
+
+  isVoicing = true;
 }
 
 /**
@@ -91,8 +157,8 @@ function ArdCheckConnect(){
  * - 0: 아무 행동 없음
  * - 1: 게임을 시작, 초기화 및 카운트다운 진행
  * - 2: 음성 재생 시작
- * - 3: 모터를 시계방향으로 회전
- * - 4: 모터를 시계반대방향으로 회전
+ * - 3: 모터를 회전하여 벽을 바라봄
+ * - 4: 모터를 회전하여 플레이어를 바라봄
  * - 5: 제한시간으로 인해 게임이 종료됨
  * - 6: 플레이어가 한 명 남아 게임이 종료됨
  */
@@ -115,7 +181,7 @@ function PlayOnReady(){
   var temp = [];
   temp = ReadyPlayers();
   if (temp[0] == temp[1] && temp[1] >= MIN_PLAYERS){
-    Start();
+    StartCount();
   }
 
   console.log(players, temp);  // 현재 상태 로그로 남김
@@ -126,17 +192,36 @@ const COUNTDOWN_TIME = 5; // 카운트 다운 5초
 let leftCountDownFrame = COUNTDOWN_TIME * FRAME_PER_SECOND;
 /**카운트다운 중 주기적으로 실행될 함수*/
 function PlayOnCounting(){
+  if (leftCountDownFrame % FRAME_PER_SECOND == 0){
+    console.log(leftCountDownFrame / FRAME_PER_SECOND, "초 남았습니다.");
+  }
+  
   if (leftCountDownFrame > 0){
     leftCountDownFrame -= 1;
+    if (leftCountDownFrame === 0) console.log("곧 시작합니다!");
   } else {
-    isCounting = false;
-    isPlaying = true;
+    Start(); // Run only once
+    leftLoopFrame = 10; // Default
+    loopFrameArray.push(leftLoopFrame);
   }
 };
 
 /**게임 중 주기적으로 실행될 함수*/
 function PlayOnGame(){
   playFrame += 1;
+
+  if (playFrame % 6 == 0){
+    console.log(`Current Game Frame: ${playFrame}`);
+  }
+
+  if (!isVoicing){ // 음성 재생 중이 아닐 때, 플레이어 움직임 가능 시간 감소
+    if (leftLoopFrame > 0){
+      leftLoopFrame -= 1;
+    } else {
+      DoVoice();
+    }
+  }
+
   /* Game Logic */
 };
 
@@ -253,11 +338,18 @@ app.get('/ard', (req, res)=>{
 // 아두이노 음성 시작
 app.get('/ardIsVoicing', (req, res) => {
   isVoicing = true;
+  console.log("아두이노에서 음성을 재생하였습니다.");
+  res.send("200");
 });
 
-// 아두이노 음성 종료
+/**
+ * 아두이노 음성 종료
+ * isVoicing -> !isVoicing 으로 바뀌는 프레임은 앱에서 알아서 판단
+ */
 app.get('/ardIsNotVoicing', (req, res) => {
   isVoicing = false;
+  console.log("아두이노에서 음성을 종료하였습니다.");
+  res.send("200");
 });
 
 // 탈락한 플레이어 처리
