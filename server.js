@@ -9,13 +9,18 @@ const MIN_PLAYERS = 3;
 const TIMEOUT_LIMIT = 200;  // *1/10초 대기시간
 const FRAME_PER_SECOND = 60;
 const MAX_PLAY_TIME = 180; // 180? 초
-const DECREASE_RATIO = 0.9;
 
-let players = {}; // key: 플레이어 아이디, value: [대기 시간, 준비 여부]
-let activityCodes = [0]; // 아두이노가 다음 프레임에 해야할 일들
+// Random System
+const DECREASE_RATIO = 0.925;
+const MIDDLE_WEIGHT = 1/10;
+const LEASTLOOPFRAME = 30;
 let minLoopFrame = 50;
 let maxLoopFrame = 200;
 let loopFrameArray = [];
+
+let players = {}; // key: 플레이어 아이디, value: [대기 시간, 준비 여부, PlayerNumber, 생존 여부]
+let numToPlayers = {} // key: 플레이어 번호, value: 플레이어 아이디
+let activityCodes = [0]; // 아두이노가 다음 프레임에 해야할 일들
 
 var isPlaying = false;
 var isCounting = false;
@@ -86,9 +91,10 @@ function NextRandom(){
   let mid = (maxLoopFrame + minLoopFrame) / 2;
 
   mid *= DECREASE_RATIO;
-  diff = diff*DECREASE_RATIO + mid - a;
+  diff *= DECREASE_RATIO;
 
-  minLoopFrame, maxLoopFrame = mid - diff, mid + diff;
+  minLoopFrame = Math.max(mid - diff + (mid - a)*MIDDLE_WEIGHT, LEASTLOOPFRAME);
+  maxLoopFrame = Math.max(mid + diff + (mid - a)*MIDDLE_WEIGHT, LEASTLOOPFRAME);
 }
 
 /**
@@ -122,6 +128,7 @@ function DoVoice(){
   activityCodes.push(3); // 모터 회전
 
   isVoicing = true;
+  NextRandom();
 }
 
 /**
@@ -131,6 +138,7 @@ function CheckConnect(){
   for (let playerId in players) {
     if (players[playerId][0] <= 0) {
       console.log(`Player ${playerId} has been disconnected due to inactivity`);
+      delete numToPlayers[players[playerId][2]];
       delete players[playerId];
     } else {
       players[playerId][0] -= 1;  // 연결 확인 시간이 경과할 때마다 감소
@@ -171,6 +179,22 @@ function ArdActivityCodeAdd(){
  */
 function ArdActivityCodeRemove(){
   activityCodes = [0]
+}
+
+/**
+ * 우승자 발생 시 실행하는 함수
+ */
+function AvoidWinner(){
+  console.log("우승자가 발생하였습니다.");
+  ResetUpdate();
+}
+
+/**
+ * 게임이 종료되고 초기화하는 합수
+ */
+function ResetUpdate(){
+  isPlaying = false;
+  console.log("서버를 초기화 합니다.");
 }
 
 /**시작 전 인원 모집에 주기적으로 실행될 함수*/
@@ -235,10 +259,16 @@ app.get('/', (req, res) => {
 // 플레이어가 서버에 참여할 때
 app.get('/join/:id', (req, res) => {
   const playerId = req.params.id;
+  var number = req.query.number;
 
   // 이미 연결된 플레이어의 아이디로 입장 불가
   if (playerId in players){
     return res.status(403).send('Id is already exist');
+  }
+
+  // 이미 연결된 플레이어의 번호로 입장 불가
+  if (number in numToPlayers){
+    return res.status(403).send('PlayerNumber is already exist');
   }
 
   // 최대 플레이어 수 초과 시 접속 불가
@@ -247,7 +277,8 @@ app.get('/join/:id', (req, res) => {
   }
 
   // 새로운 플레이어 추가 또는 기존 플레이어 시간 갱신
-  players[playerId] = [TIMEOUT_LIMIT, false];
+  players[playerId] = [TIMEOUT_LIMIT, false, number, false];
+  numToPlayers[number] = playerId;
   res.send('200');
 });
 
@@ -352,10 +383,20 @@ app.get('/ardIsNotVoicing', (req, res) => {
   res.send("200");
 });
 
+/**
+ * 아두이노에서 생존자 발생
+ * /ardSurvive?number=123
+ */
+app.get('/ardSurvive', (req, res) => {
+  var number = req.query.number;
+  players[numToPlayers[number]][3] = true; // isSurvive
+});
+
 // 탈락한 플레이어 처리
 app.get('/falled/:id', (req, res)=>{
   const playerId = req.params.id;
   if (playerId in players){
+    delete numToPlayers[players[playerId][2]];
     delete players[playerId];
   }
 });
