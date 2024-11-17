@@ -15,9 +15,10 @@
 
 ### 플레이어 관련 엔드포인트
 
-- **`GET /join/:id`**  
+- **`GET /join/:id?number=123`**  
   - 서버에 플레이어를 추가합니다.
   - **파라미터**: `id` - 플레이어의 고유 식별자
+  - **쿼리**: `number` - 플레이어의 고유 번호
   - **응답**:
     - `200`: 성공적으로 참가
     - `403`: 이미 존재하는 ID이거나 서버가 가득 찬 경우
@@ -73,6 +74,10 @@
     - 아두이노에서 음성이 종료되면 서버에 알립니다.
     - **응답**:
       - `200`: 정상 처리됨
+     
+  - **`GET /ardSurvive?number=123`**
+    - 아두이노에서 생존자가 발생하면 서버에 알립니다.
+    - **쿼리**: `number`
 
 ## About activityCodes (다음 행동 코드 배열)
 - 아두이노는 서버에게 주기적으로 GET 요청을 보내 activityCodes를 반환받아 행동합니다.
@@ -125,7 +130,19 @@
   - `[min, max]` 범위 내 랜덤 값을 생성합니다.
 
 ### `NextRandom()`
-- **설명**: `minLoopFrame`, `maxLoopFrame` 값을 갱신합니다.
+- **설명**:  
+  `minLoopFrame`과 `maxLoopFrame` 값을 갱신합니다. 갱신 과정은 다음과 같습니다:
+  1. 현재 `loopFrameArray`의 평균값(`a`)을 계산합니다.
+  2. `minLoopFrame`과 `maxLoopFrame`의 중간값(`mid`)과 차이(`diff`)를 구하고, 이를 감소 비율(`DECREASE_RATIO`)에 따라 줄입니다.
+  3. 평균값(`a`)과 중간값(`mid`) 간의 차이에 가중치(`MIDDLE_WEIGHT`)를 적용해, 새로운 `minLoopFrame`과 `maxLoopFrame` 값을 계산합니다.
+  4. 결과적으로 `minLoopFrame`과 `maxLoopFrame`은 최소값(`LEASTLOOPFRAME`) 이상으로 유지됩니다.
+  5. 자세한 내용은 서버 코드를 확인해주세요.
+
+- **수식 개요**:  
+  - 새로운 **`minLoopFrame`**: `Max((mid - diff) + (mid - a) * MIDDLE_WEIGHT, LEASTLOOPFRAME)`
+  - 새로운 **`maxLoopFrame`**: `Max((mid - diff) + (mid - a) * MIDDLE_WEIGHT, LEASTLOOPFRAME)`
+    
+- **파라미터**: 없음
 - **반환값**: 없음
 
 ---
