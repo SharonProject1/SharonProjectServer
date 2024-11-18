@@ -18,8 +18,9 @@ let minLoopFrame = 50;
 let maxLoopFrame = 200;
 let loopFrameArray = [];
 
-let players = {}; // key: 플레이어 아이디, value: [대기 시간, 준비 여부, PlayerNumber, 생존 여부]
+let players = {}; // key: 플레이어 아이디, value: [대기 시간, 준비 여부, PlayerNumber, 생존 여부, 데이터 동기화 해야 하나요?, playerIndex]
 let numToPlayers = {} // key: 플레이어 번호, value: 플레이어 아이디
+let indexToPlayers = {} // key: 플레이어 인덱스, value: 플레이어 아이디
 let activityCodes = [0]; // 아두이노가 다음 프레임에 해야할 일들
 
 var isPlaying = false;
@@ -30,7 +31,7 @@ var playFrame = 0;
 var leftLoopFrame = 0;
 
 // for arduino
-const ARD_TIMEOUT_LIMIT = 200; // 1/10초 대기시간
+const ARD_TIMEOUT_LIMIT = 500; // 1/10초 대기시간
 
 var ardIsConnet = false; // 아두이노 연결 관련
 var ardLastCheckFrame = 0; // 아두이노 연결 관련
@@ -57,8 +58,24 @@ function ReadyPlayers(){
  * @returns Number of Players
  */
 function NumOfPlayers(){
-  return players.length;
+  let people = 0;
+  for (let playerId in players){
+    people += 1;
+  }
+  return people;
 };
+
+/**
+ * 플레이어 인덱스를 정리하는 함수
+ * @param {Number} num 
+ */
+function ExitPlayerIndex(num){
+  for (let i = num; i < NumOfPlayers() - 1; i++) {
+    players[indexToPlayers[i+1]][5] = i
+    indexToPlayers[i] = indexToPlayers[i+1]
+  }
+  delete indexToPlayers[NumOfPlayers() - 1];
+}
 
 /**
  * 두 실수 사이의 랜덤 값을 구하는 함수
@@ -132,12 +149,23 @@ function DoVoice(){
 }
 
 /**
+ * needToUpdate를 일괄적으로 조정하는 함수
+ * @returns void
+ */
+function DoUpdate(){
+  for (playerId in players){
+    players[playerId][4] = true;
+  }
+}
+
+/**
  * 플레이어의 연결을 확인하는 함수
  */
 function CheckConnect(){
   for (let playerId in players) {
     if (players[playerId][0] <= 0) {
       console.log(`Player ${playerId} has been disconnected due to inactivity`);
+      ExitPlayerIndex(players[playerId][5]);
       delete numToPlayers[players[playerId][2]];
       delete players[playerId];
     } else {
@@ -208,7 +236,7 @@ function PlayOnReady(){
     StartCount();
   }
 
-  console.log(players, temp);  // 현재 상태 로그로 남김
+  console.log(players, temp, indexToPlayers);  // 현재 상태 로그로 남김
 };
 
 
@@ -259,27 +287,37 @@ app.get('/', (req, res) => {
 // 플레이어가 서버에 참여할 때
 app.get('/join/:id', (req, res) => {
   const playerId = req.params.id;
-  var number = req.query.number;
 
   // 이미 연결된 플레이어의 아이디로 입장 불가
   if (playerId in players){
-    return res.status(403).send('Id is already exist');
-  }
-
-  // 이미 연결된 플레이어의 번호로 입장 불가
-  if (number in numToPlayers){
-    return res.status(403).send('PlayerNumber is already exist');
+    return res.status(403).send('Id is already exist.');
   }
 
   // 최대 플레이어 수 초과 시 접속 불가
   if (Object.keys(players).length >= MAX_PLAYERS) {
-    return res.status(403).send('Server is full');
+    return res.status(403).send('Server is full.');
   }
 
   // 새로운 플레이어 추가 또는 기존 플레이어 시간 갱신
-  players[playerId] = [TIMEOUT_LIMIT, false, number, false];
-  numToPlayers[number] = playerId;
+  players[playerId] = [TIMEOUT_LIMIT, false, undefined, false, true, NumOfPlayers()];
+  indexToPlayers[NumOfPlayers() - 1] = playerId;
   res.send('200');
+  DoUpdate();
+});
+
+// 플레이어 번호 입력 inputNumber/abc?number=123
+app.get('/inputNumber/:id', (req, res) => {
+  const playerId = req.params.id;
+  let number = req.query.number;
+
+  // 이미 연결된 플레이어의 번호로 대응 불가
+  if (number in numToPlayers){
+    return res.status(403).send('Number is already exist.');
+  }
+
+  players[playerId][2] = number;
+  numToPlayers[number] = playerId;
+  DoUpdate();
 });
 
 var t = 0;
@@ -309,10 +347,21 @@ app.get('/check/:id', (req, res) => {
   // 연결된 플레이어인지 확인
   if (playerId in players) {
     players[playerId][0] = TIMEOUT_LIMIT;  // 플레이어 활동 시간 갱신
-    res.json({ connect: true });
+    res.json({
+      connect: true,
+      needToUpdate: players[playerId][4]
+    });
   } else {
     res.json({ connect: false });
   }
+});
+
+// 플레이어 데이터 요청
+app.get('/playerData/:id', (req, res) => {
+  const playerId = req.params.id;
+
+  res.json(players);
+  players[playerId][4] = false;
 });
 
 // 플레이어 준비 신호 반영
@@ -338,9 +387,9 @@ app.get('/notready/:id', (req, res) => {
 });
 
 
+let nop = 0;
 // 게임 상태 반환: 앱이 보내는 파트
 app.get('/state', (req, res)=>{
-  let nop = 0;
   nop = NumOfPlayers();
   
   res.json({
