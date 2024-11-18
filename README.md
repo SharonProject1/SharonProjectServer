@@ -36,11 +36,6 @@
   - **응답**: `{ "connect": true, needToUpdate: <boolean> }` (연결됨),
               `{ "connect": false }` (연결되지 않음)
 
-- **`GET /playerData/:id`**  
-  - 플레이어 데이터를 요청합니다.
-  - **파라미터**: `id` - 플레이어의 고유 식별자
-  - **응답**: `players` - Json 파일
-
 - **`GET /ready/:id`**  
   - 플레이어의 준비 상태를 `true`로 설정합니다.
   - **파라미터**: `id` - 플레이어의 고유 식별자
@@ -71,6 +66,11 @@
     - `leftCountDownFrame`: 카운트다운에서 남은 프레임 수
     - `numberOfPlayers`: 현재 접속한 플레이어 수
     - `playFrame`: 게임 플레이 현재의 프레임 (플레이 타임 계산을 위함)
+   
+- **`GET /playerData/:id`**  
+  - 플레이어 데이터를 요청합니다.
+  - **파라미터**: `id` - 플레이어의 고유 식별자
+  - **응답**: `players` - Json 파일
    
 - **`GET /ard`**
   - 아두이노가 다음 어떤 행동을 해야하는지 배열을 반환합니다.
