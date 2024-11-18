@@ -66,6 +66,7 @@
     - `leftCountDownFrame`: 카운트다운에서 남은 프레임 수
     - `numberOfPlayers`: 현재 접속한 플레이어 수
     - `playFrame`: 게임 플레이 현재의 프레임 (플레이 타임 계산을 위함)
+    - `timeLeft`: 게임 플레이 남은 시간 (초)
    
 - **`GET /playerData/:id`**  
   - 플레이어 데이터를 요청합니다.
