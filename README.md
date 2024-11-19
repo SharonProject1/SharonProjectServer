@@ -5,7 +5,7 @@
 ---
 
 ## 🖥️ **서버 주소 및 기본 포트**
-- **`http://sharonproject.ddns.net:8080/`**
+- **`http://sharonproject.ddns.net:5522/`**
 
 ---
 
