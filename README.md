@@ -14,8 +14,7 @@
 ### 🔖 **메인 페이지**
 
 - **`GET /`**  
-  - 환영 메시지를 반환합니다.
-  - **응답**: `"Welcome To 무궁화 꽃 게임"`
+  - 서버 베이스 페이지를 반환합니다.
 
 ---
 
@@ -57,7 +56,7 @@
     - ✅ `200`: 준비 상태가 `false`로 설정됨
     - 🚫 `404`: 플레이어를 찾을 수 없음
 
-- **`GET /falled/:id`**  
+- **`GET /falled/:id`** (추후 수정)
   - 탈락한 플레이어를 제거합니다.
   - **파라미터**: `id` - 플레이어의 고유 식별자
 
@@ -83,9 +82,10 @@
   - **응답**: `players` - Json 파일
 
 - **`GET /ard`**  
-  - 아두이노가 다음 어떤 행동을 해야 하는지 배열을 반환합니다.
+  - 아두이노가 다음 어떤 행동을 해야 하는지 문자열을 반환합니다.
   - **응답**:
-    - `do`: 다음 행동 코드 배열  
+    - `do`: 다음 행동 코드 문자열
+    - `voiceFrame`: 다음 음성 재생 **프레임**
 
 ---
 
@@ -107,7 +107,7 @@
 
 ---
 
-## 📋 **About activityCodes (다음 행동 코드 배열)**
+## 📋 **About activityCodes (다음 행동 코드 문자열)**
 
 - 아두이노는 서버에게 주기적으로 `GET` 요청을 보내 activityCodes를 반환받아 행동합니다.  
   - `0`: 아무 행동 없음  
@@ -116,11 +116,40 @@
   - `3`: 모터를 회전하여 벽을 바라봄  
   - `4`: 모터를 회전하여 플레이어를 바라봄  
   - `5`: 제한시간으로 인해 게임이 종료됨  
-  - `6`: 플레이어가 한 명 남아 게임이 종료됨  
+  - `6`: 플레이어가 한 명 남아 게임이 종료됨
+- **예시**: `{do: '024', voiceFrame: 71}`
 
 ---
 
+## 🖋️ **About playerData (플레이어 데이터 json)**
+
+- 앱은 `check` 요청에 `needToUpdate`가 `true`일 때, 플레이어 데이터를 요청합니다.
+  - **데이터 구조**:
+    - **key**: `playerId`
+    - **value**: `[connectCheckFrame, isReady, playerNumber, isSurvive, needToUpdate, playerIndex]`
+- **예시**: `{'abcd': [198, false, 456, true, true, 0]}`
+
+---
+
+## 🖨️ **About State (게임 상황 json)**
+
+- 게임 진행 상황이 궁금할 때 `/state`를 통해 게임 상황을 반환 받습니다.
+  - **데이터 구조**:
+    - **key**:
+      - `isPlaying`: 게임 진행 여부
+      - `isVoicing`: 음성 재생 중 여부
+      - `isCounting`: 카운트다운 중 여부
+      - `serverFPS`: 서버 프레임
+      - `leftCountDownFrame`: 카운트다운 남은 프레임
+      - `numberOfPlayers`: 총 플레이어 수
+      - `playFrame`: 게임 시작 후 현재 프레임
+      - `timeLeft`: 게임 마무리 남은 시간 (초)
+- **예시**: `{"isPlaying":true, "isVoicing":false, "isCounting":false, "serverFPS":60, "leftCountDownFrame":0, "numberOfPlayers":4, "playFrame":12, "timeLeft":50.8}`
+---
+
 # 📌 **서버 내장 함수**
+
+여기부터는 서버에 내장되어 **외부에서 접근할 수 없는 함수**를 기재하였습니다.
 
 ---
 
@@ -157,6 +186,10 @@
 
 ### **`NextRandom()`**  
 - **설명**: `minLoopFrame`과 `maxLoopFrame` 값을 갱신합니다.  
+- **반환값**: 없음
+
+### **`NextVoiceRandom()`**  
+- **설명**: `nextVoicePlayFrame`을 무작위로 결정하고, `minVoiceFrame`과 `maxVoiceFrame` 값을 갱신합니다.  
 - **반환값**: 없음  
 
 ---
