@@ -127,7 +127,7 @@
   - **데이터 구조**:
     - **key**: `playerId`
     - **value**: `[connectCheckFrame, isReady, playerNumber, isSurvive, needToUpdate, playerIndex]`
-- **예시**: `{'abcd': [198, false, 456, true, true, 0]}`
+- **예시**: `{'abcd': [198, false, 456, true, true, 0], 'hasdf': [197, false, 101, true, true, 1], 'wkjnc': [198, false, 455, true, false, 2]}`
 
 ---
 
