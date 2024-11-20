@@ -39,8 +39,8 @@
   - 플레이어가 여전히 연결되어 있는지 확인하고, 대기 시간을 초기화합니다.
   - **파라미터**: `id` - 플레이어의 고유 식별자  
   - **응답**:  
-    - 연결됨: `{ "connect": true, needToUpdate: <boolean> }`  
-    - 연결되지 않음: `{ "connect": false }`
+    - 연결됨: `{ connect: true, needToUpdate: <boolean> }`  
+    - 연결되지 않음: `{ connect: false }`
 
 - **`GET /ready/:id`**  
   - 플레이어의 준비 상태를 `true`로 설정합니다.
