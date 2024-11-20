@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>무궁화 꽃 게임</title>
+    <style>
+        /* 팔레트 컬러 */
+        :root {
+            --bg-light: #DEECDA;
+            --yellow: #F1E4A0;
+            --peach-light: #F2BC9C;
+            --peach-dark: #EDA89D;
+            --orange: #E4A47D;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: var(--bg-light);
+            color: #333;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        header {
+            background-color: var(--peach-dark);
+            color: white;
+            padding: 1rem;
+            width: 100%;
+            position: fixed;
+            top: 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+
+        main {
+            margin-top: 80px;
+            max-width: 800px;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: var(--orange);
+        }
+
+        p {
+            line-height: 1.6;
+            font-size: 1.1rem;
+        }
+
+        .btn-group {
+            margin-top: 20px;
+        }
+
+        a {
+            text-decoration: none;
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin: 5px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .btn-start {
+            background-color: var(--yellow);
+            color: #333;
+            border: none;
+        }
+
+        .btn-start:hover {
+            background-color: var(--orange);
+            color: white;
+        }
+
+        .btn-info {
+            background-color: var(--peach-light);
+            color: #333;
+            border: 2px solid var(--orange);
+        }
+
+        .btn-info:hover {
+            background-color: var(--orange);
+            color: white;
+        }
+
+        footer {
+            margin-top: 40px;
+            font-size: 0.9rem;
+            color: var(--peach-dark);
+        }
+    </style>
+    <script>
+        // 버튼 클릭 시 팝업 표시
+        function showPopup() {
+            alert('기능이 추가될 예정이 없습니다.');
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <h1>🌸 무궁화 꽃 게임 🌸</h1>
+    </header>
+    <main>
+        <h2>환영합니다!</h2>
+        <p>무궁화 꽃 게임은 멀티플레이로 즐길 수 있는 재미있는 게임입니다. <br>
+            친구들과 함께 긴장감 넘치는 순간을 체험해보세요!</p>
+        <div class="btn-group">
+            <a href="#" onclick="showPopup()" class="btn-start">게임 시작하기</a>
+            <a href="https://github.com/SharonProject1" class="btn-info">더 알아보기</a>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2024 무궁화 꽃 게임 <br>| Designed by 4.5 of UOS.</p>
+    </footer>
+</body>
+</html>

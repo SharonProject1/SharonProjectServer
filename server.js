@@ -2,6 +2,7 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const path = require('path');
 app.use(cors());
 
 const MAX_PLAYERS = 10;
@@ -17,16 +18,19 @@ const LEASTLOOPFRAME = 30;
 let minLoopFrame = 50;
 let maxLoopFrame = 200;
 let loopFrameArray = [];
+let minVoiceFrame = 50;
+let maxVoiceFrame = 100;
 
 let players = {}; // key: 플레이어 아이디, value: [대기 시간, 준비 여부, PlayerNumber, 생존 여부, 데이터 동기화 해야 하나요?, playerIndex]
 let numToPlayers = {} // key: 플레이어 번호, value: 플레이어 아이디
 let indexToPlayers = {} // key: 플레이어 인덱스, value: 플레이어 아이디
-let activityCodes = [0]; // 아두이노가 다음 프레임에 해야할 일들
+let activityCodes = '0'; // 아두이노가 다음 프레임에 해야할 일들
 
 var isPlaying = false;
 var isCounting = false;
 var isVoicing = false;
 var playFrame = 0;
+var nextVoicePlayframe = 20;
 
 var leftLoopFrame = 0;
 
@@ -115,6 +119,17 @@ function NextRandom(){
 }
 
 /**
+ * nextVoicePlayFrame 을 무작위로 결정하고,
+ * minVoiceFrame, maxVoiceFrame 결정하는 함수
+ * @returns void
+ */
+function NextVoiceRandom(){
+  nextVoicePlayframe = Randoms(minVoiceFrame, maxVoiceFrame);
+
+  
+}
+
+/**
  * 게임 시작 카운트 다운을 시작하는 함수
  * @returns void
  */
@@ -141,8 +156,8 @@ function DoVoice(){
   console.log(`Voice! Next Loop Frame: ${leftLoopFrame}`);
   loopFrameArray.push(leftLoopFrame);
 
-  activityCodes.push(2); // 음성을 재생
-  activityCodes.push(3); // 모터 회전
+  activityCodes += '2'; // 음성을 재생
+  activityCodes += '2'; // 모터 회전
 
   isVoicing = true;
   NextRandom();
@@ -199,20 +214,20 @@ function ArdCheckConnect(){
  * - 6: 플레이어가 한 명 남아 게임이 종료됨
  */
 function ArdActivityCodeAdd(){
-  activityCodes = [0]
+  activityCodes += '0'
 }
 
 /**
  * 아두이노가 다음 프레임에 해야할 일들 제거 함수
  */
 function ArdActivityCodeRemove(){
-  activityCodes = [0]
+  activityCodes = '0'
 }
 
 /**
  * 우승자 발생 시 실행하는 함수
  */
-function AvoidWinner(){
+function AvoidSurvive(){
   console.log("우승자가 발생하였습니다.");
   ResetUpdate();
 }
@@ -240,7 +255,7 @@ function PlayOnReady(){
 };
 
 
-const COUNTDOWN_TIME = 5; // 카운트 다운 5초
+const COUNTDOWN_TIME = 4; // 카운트 다운 4초
 let leftCountDownFrame = COUNTDOWN_TIME * FRAME_PER_SECOND;
 /**카운트다운 중 주기적으로 실행될 함수*/
 function PlayOnCounting(){
@@ -281,7 +296,7 @@ function PlayOnGame(){
 //////////////////////////////////////////////////
 // 메인 페이지
 app.get('/', (req, res) => {
-  res.send('Welcome To 무궁화 꽃 게임');
+  res.sendFile(path.join(__dirname, 'index2.html'));
 });
 
 // 플레이어가 서버에 참여할 때
@@ -301,7 +316,7 @@ app.get('/join/:id', (req, res) => {
   // 새로운 플레이어 추가 또는 기존 플레이어 시간 갱신
   players[playerId] = [TIMEOUT_LIMIT, false, undefined, false, true, NumOfPlayers()];
   indexToPlayers[NumOfPlayers() - 1] = playerId;
-  res.send('200');
+  res.json({'message':'200'});
   DoUpdate();
 });
 
@@ -356,12 +371,21 @@ app.get('/check/:id', (req, res) => {
   }
 });
 
-// 플레이어 데이터 요청
+// 플레이어 데이터 요청, 아이디 필요.
 app.get('/playerData/:id', (req, res) => {
   const playerId = req.params.id;
 
+  if (!(playerId in players)){
+    return res.status(404).send('PlayerID is not exist.');
+  }
+
   res.json(players);
   players[playerId][4] = false;
+});
+
+// 플레이어 데이터 요청, 아이디 필요 없음.
+app.get('/playerData', (req, res) => {
+  res.json(players);
 });
 
 // 플레이어 준비 신호 반영
@@ -399,8 +423,9 @@ app.get('/state', (req, res)=>{
     serverFPS: FRAME_PER_SECOND,
     leftCountDownFrame: leftCountDownFrame,
     numberOfPlayers: nop,
-    playFrame: playFrame
-  });
+    playFrame: playFrame,
+    timeLeft: MAX_PLAY_TIME - players/FRAME_PER_SECOND
+  })
 });
 
 // 아두이노는 다음 프레임에 무엇을 실행해야 하나요? + 연결 확인
@@ -409,7 +434,8 @@ app.get('/ard', (req, res)=>{
   ArdActivityCodeAdd();
 
   res.json({
-    do: activityCodes
+    do: activityCodes,
+    voiceFrame: nextVoicePlayframe
   });
 
   ArdActivityCodeRemove();
@@ -452,6 +478,6 @@ app.get('/falled/:id', (req, res)=>{
 
 
 // 서버 시작
-app.listen(8080, () => {
-  console.log('Express server running on port 8080');
+app.listen(5522, () => {
+  console.log('Express server running on port 5522');
 });
