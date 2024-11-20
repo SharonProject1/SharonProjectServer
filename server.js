@@ -18,8 +18,6 @@ const LEASTLOOPFRAME = 30;
 let minLoopFrame = 50;
 let maxLoopFrame = 200;
 let loopFrameArray = [];
-let minVoiceFrame = 50;
-let maxVoiceFrame = 100;
 
 let players = {}; // key: 플레이어 아이디, value: [대기 시간, 준비 여부, PlayerNumber, 생존 여부, 데이터 동기화 해야 하나요?, playerIndex]
 let numToPlayers = {} // key: 플레이어 번호, value: 플레이어 아이디
@@ -30,12 +28,13 @@ var isPlaying = false;
 var isCounting = false;
 var isVoicing = false;
 var playFrame = 0;
-var nextVoicePlayframe = 20;
+var nextVoicePlayCode = 0;
+var nextVoicePlaySpeed = 1;
 
 var leftLoopFrame = 0;
 
 // for arduino
-const ARD_TIMEOUT_LIMIT = 500; // 1/10초 대기시간
+const ARD_TIMEOUT_LIMIT = 300; // 1/10초 대기시간
 
 var ardIsConnet = false; // 아두이노 연결 관련
 var ardLastCheckFrame = 0; // 아두이노 연결 관련
@@ -92,6 +91,16 @@ function Randoms(min, max){
 }
 
 /**
+ * 두 정수 사이의 랜덤 정수를 구하는 함수
+ * @param {int} min 
+ * @param {int} max 
+ * @returns RandomInteger
+ */
+function Randomn(min, max){
+  return Math.floor((max-min+1) * Math.random() + min);
+}
+
+/**
  * 배열의 평균 값을 반환하는 함수
  * @param {let} arr
  * @returns Average of Array
@@ -124,7 +133,7 @@ function NextRandom(){
  * @returns void
  */
 function NextVoiceRandom(){
-  nextVoicePlayframe = Randoms(minVoiceFrame, maxVoiceFrame);
+  nextVoicePlayCode = Randomn(0, 9);
 
   
 }
@@ -193,7 +202,7 @@ function CheckConnect(){
  * 아두이노의 연결을 확인하는 함수
  */
 function ArdCheckConnect(){
-  ardLastCheckFrame -= 1;
+  ardLastCheckFrame = Math.max(0, ardLastCheckFrame - 1);
   if (ardLastCheckFrame > 0){
     ardIsConnet = true;
   } else {
@@ -243,6 +252,7 @@ function ResetUpdate(){
 /**시작 전 인원 모집에 주기적으로 실행될 함수*/
 function PlayOnReady(){
   CheckConnect();
+  ArdCheckConnect();
 
   // 플레이어 모두가 준비되면 시작
   var temp = [];
@@ -251,7 +261,9 @@ function PlayOnReady(){
     StartCount();
   }
 
-  console.log(players, temp, indexToPlayers);  // 현재 상태 로그로 남김
+  if (t === 0){
+    console.log(players, temp, indexToPlayers, ardLastCheckFrame, ardIsConnet); 
+  } // 현재 상태 로그로 남김
 };
 
 
@@ -297,6 +309,7 @@ function PlayOnGame(){
 // 메인 페이지
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index2.html'));
+  console.log(`${req.ip} 에서 메인 페이지에 접속하였습니다.`);
 });
 
 // 플레이어가 서버에 참여할 때
@@ -430,13 +443,15 @@ app.get('/state', (req, res)=>{
 
 // 아두이노는 다음 프레임에 무엇을 실행해야 하나요? + 연결 확인
 app.get('/ard', (req, res)=>{
-  ArdCheckConnect();
+  ardLastCheckFrame = ARD_TIMEOUT_LIMIT;
   ArdActivityCodeAdd();
 
   res.json({
     do: activityCodes,
-    voiceFrame: nextVoicePlayframe
+    voiceCode: nextVoicePlayCode,
+    voiceSpeed: nextVoicePlaySpeed
   });
+  console.log('아두이노에서 신호가 왔습니다.');
 
   ArdActivityCodeRemove();
 });
