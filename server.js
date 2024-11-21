@@ -3,6 +3,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const path = require('path');
+const { on } = require('events');
 app.use(cors());
 
 const MAX_PLAYERS = 10;
@@ -19,11 +20,17 @@ let minLoopFrame = 50;
 let maxLoopFrame = 200;
 let loopFrameArray = [];
 
-let players = {}; // key: 플레이어 아이디, value: [대기 시간, 준비 여부, PlayerNumber, 생존 여부, 데이터 동기화 해야 하나요?, playerIndex]
+let players = {}; 
+/** key: 플레이어 아이디, value: [0:대기 시간, 1:준비 여부, 
+ * 2:PlayerNumber, 3:승리 여부, 4:데이터 동기화 해야 하나요?, 
+ * 5:playerIndex, 6:생존 여부, 7:플레이 프레임, 
+ * 8:플레이 중 연결 여부]
+ */
 let numToPlayers = {} // key: 플레이어 번호, value: 플레이어 아이디
 let indexToPlayers = {} // key: 플레이어 인덱스, value: 플레이어 아이디
 let activityCodes = '0'; // 아두이노가 다음 프레임에 해야할 일들
 
+var isUpdating = false;
 var isPlaying = false;
 var isCounting = false;
 var isVoicing = false;
@@ -38,6 +45,8 @@ const ARD_TIMEOUT_LIMIT = 300; // 1/10초 대기시간
 
 var ardIsConnet = false; // 아두이노 연결 관련
 var ardLastCheckFrame = 0; // 아두이노 연결 관련
+
+let lastResultData = [];
 
 /**
  * 준비된 플레이어와 총 플레이어 수를 반환하는 함수
@@ -67,6 +76,37 @@ function NumOfPlayers(){
   }
   return people;
 };
+
+/**
+ * 생존해있지만 우승하지는 않은 플레이어의 수를 반환하는 함수
+ * @returns Number of Alive and Not Survive Players
+ */
+function NumOfAlivePlayers(){
+  let people = 0;
+  for (let playerId in players){
+    if (players[playerId][6] && !players[playerId][3]){
+      people += 1;
+    }
+  }
+  return people;
+}
+
+/**
+ * 플레이어 데이터 json을 Array로 변환합니다.
+ * @returns playerArray
+ */
+function TransformData(){
+  let playerArray = [];
+
+  if (NumOfPlayers() != 0){
+    for (playerId in players){
+      playerArray.push([playerId, players[playerId][2], players[playerId][1], players[playerId][6], players[playerId][3], players[playerId][4]])
+    }
+    return playerArray;
+  } else {
+    return [[]];
+  }
+}
 
 /**
  * 플레이어 인덱스를 정리하는 함수
@@ -139,6 +179,50 @@ function NextVoiceRandom(){
 }
 
 /**
+ * 작은 값 부터 큰 값 순으로 정렬
+ * @param {Array} arr 
+ * @returns rightSortedArray
+ */
+function SortRight(arr){
+  let result = [];
+  for (let elemArr in arr){
+    if (result.length === 0){
+      result.push(elemArr)
+    } else {
+      for (let i = 0; i < result.length; i++) {
+        if (result[i][4] > elemArr[4]){
+          result.splice(i, 0, elemArr);
+          break;
+        }
+      }
+    }
+  }
+
+  for (let count = 1; count < result.length + 1; count++) {
+    result[i-1][1] = `${i}등`;
+    result[i-1][4] = Math.floor(result[i-1][4] / FRAME_PER_SECOND);
+  }
+
+  return result;
+}
+
+/**
+ * 큰 값 부터 작은 값 순으로 정렬
+ * @param {Array} arr 
+ * @returns reverseSortedArray
+ */
+function SortReverse(arr){
+  let result = SortRight(arr).reverse();
+  let nop = NumOfPlayers();
+  for (let count = nop; count < result.length + nop; count++) {
+    result[i-1][1] = `${i}등`;
+    result[i-1][4] = Math.floor(result[i-1][4] / FRAME_PER_SECOND);
+  }
+
+  return result;
+}
+
+/**
  * 게임 시작 카운트 다운을 시작하는 함수
  * @returns void
  */
@@ -188,14 +272,48 @@ function DoUpdate(){
 function CheckConnect(){
   for (let playerId in players) {
     if (players[playerId][0] <= 0) {
+      if (isPlaying){
+        console.log(`Player ${playerId} has been FAILED due to inactivity`);
+        players[playerId][3] = false;
+        players[playerId][6] = false;
+        players[playerId][8] = false;
+      } else { // 게임 중이 아닐 때 나간 것
       console.log(`Player ${playerId} has been disconnected due to inactivity`);
       ExitPlayerIndex(players[playerId][5]);
       delete numToPlayers[players[playerId][2]];
       delete players[playerId];
+      }
     } else {
       players[playerId][0] -= 1;  // 연결 확인 시간이 경과할 때마다 감소
     }
   }
+}
+
+/**
+ * 
+ * @returns resultArray
+ */
+function ResultArray(){
+  let a = [];
+  let b = [];
+  let c = [];
+
+  let resultArray = [];
+
+
+  for (let playerId in players){
+    if (players[playerId][8] && players[playerId][3]){
+      a.push(["survived", null, players[playerId][2], playerId, players[playerId][7]])
+    } else if (players[playerId][8] && !players[playerId][3]){
+      b.push(["failed", null, players[playerId][2], playerId, players[playerId][7]])
+    } else {
+      c.push(["disconnected", '-', players[playerId][2], playerId, '-'])
+    }
+  }
+
+  resultArray = SortRight(a) + SortReverse(b) + c;
+
+  return resultArray;
 }
 
 /**
@@ -238,15 +356,24 @@ function ArdActivityCodeRemove(){
  */
 function AvoidSurvive(){
   console.log("우승자가 발생하였습니다.");
-  ResetUpdate();
 }
 
 /**
- * 게임이 종료되고 초기화하는 합수
+ * 게임이 종료되고 나서 초기화하는 합수
  */
 function ResetUpdate(){
+
+}
+
+/**
+ * 게임을 종료하는 함수
+ */
+function GameEnd(){
   isPlaying = false;
-  console.log("서버를 초기화 합니다.");
+  isUpdating = true;
+  console.log("게임을 종료합니다.");
+
+  lastResultData = ResultArray();
 }
 
 /**시작 전 인원 모집에 주기적으로 실행될 함수*/
@@ -293,6 +420,27 @@ function PlayOnGame(){
     console.log(`Current Game Frame: ${playFrame}`);
   }
 
+  // 게임 시간이 초과되었을 때 게임 종료
+  if (playFrame === MAX_PLAY_TIME * FRAME_PER_SECOND){
+    // 시간초과된 플레이어의 상태를 갱신합니다.
+    for (let playerId in players){
+      if (!players[playerId][3]){
+        players[playerId][6] = false;
+        players[playerId][7] = playFrame;
+      }
+    }
+
+    GameEnd();
+    return 0;
+  }
+
+  // 더이상 우승자가 나올 가능성이 없을 때 게임 종료
+  if (NumOfAlivePlayers() === 0){
+    GameEnd();
+    return 0;
+  }
+
+
   if (!isVoicing){ // 음성 재생 중이 아닐 때, 플레이어 움직임 가능 시간 감소
     if (leftLoopFrame > 0){
       leftLoopFrame -= 1;
@@ -308,7 +456,7 @@ function PlayOnGame(){
 //////////////////////////////////////////////////
 // 메인 페이지
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index2.html'));
+  res.status(200).sendFile(path.join(__dirname, 'index2.html'));
   console.log(`${req.ip} 에서 메인 페이지에 접속하였습니다.`);
 });
 
@@ -327,9 +475,9 @@ app.get('/join/:id', (req, res) => {
   }
 
   // 새로운 플레이어 추가 또는 기존 플레이어 시간 갱신
-  players[playerId] = [TIMEOUT_LIMIT, false, undefined, false, true, NumOfPlayers()];
+  players[playerId] = [TIMEOUT_LIMIT, false, undefined, false, true, NumOfPlayers(), true, 0, true];
   indexToPlayers[NumOfPlayers() - 1] = playerId;
-  res.json({'message':'200'});
+  res.status(200).send(`You join server ${playerId}`);
   DoUpdate();
   console.log(`${req.ip} 에서 join 요청을 보냈습니다. ID: ${playerId}`);
 });
@@ -354,19 +502,24 @@ var t = 0;
 // 주기적으로 코드를 실행 (추후 주기는 변경될 수 있음)
 setInterval(() => {
   t = (t + 1) % FRAME_PER_SECOND // 0 <= t <= FPS-1
-  
-  if (!isPlaying && !isCounting){
-    if (t % 6 == 0){ // 6프레임마다 실행
-      PlayOnReady();
+
+  if (!isUpdating){
+    if (!isPlaying && !isCounting){
+      if (t % 6 == 0){ // 6프레임마다 실행
+        PlayOnReady();
+      }
+    } 
+    
+    else if (isPlaying && !isCounting){
+      PlayOnGame();
+    } 
+    
+    else { // isCounting
+      PlayOnCounting();
     }
-  } 
-  
-  else if (isPlaying && !isCounting){
-    PlayOnGame();
-  } 
-  
-  else { // isCounting
-    PlayOnCounting();
+  }
+  else if (isUpdating){ // 반대를 강조하기 위해서 else if.
+    /* Update Logic */
   }
 }, 1000/FRAME_PER_SECOND);  // 100ms마다 실행 : 10FPS
 
@@ -377,12 +530,12 @@ app.get('/check/:id', (req, res) => {
   // 연결된 플레이어인지 확인
   if (playerId in players) {
     players[playerId][0] = TIMEOUT_LIMIT;  // 플레이어 활동 시간 갱신
-    res.json({
+    res.status(200).json({
       connect: true,
       needToUpdate: players[playerId][4]
     });
   } else {
-    res.json({ connect: false });
+    res.status(206).json({ connect: false });
   }
 });
 
@@ -393,15 +546,20 @@ app.get('/playerData/:id', (req, res) => {
   if (!(playerId in players)){
     return res.status(404).send('PlayerID is not exist.');
   }
-
-  res.json(players);
-  players[playerId][4] = false;
-  console.log(`${req.ip} 에서 플레이어 데이터를 요청하였습니다. ID: ${playerId}`);
+  
+  if (players[playerId][4]){
+    players[playerId][4] = false;
+    res.status(200).json({data: TransformData()});
+    console.log(`${req.ip} 에서 플레이어 데이터를 요청하였습니다. ID: ${playerId}`);
+  } else {
+    res.status(206).json({data: TransformData()});
+    console.log(`${req.ip} 에서 플레이어 데이터를 요청하였으나 불필요한 요청입니다. ID: ${playerId}`);
+  }
 });
 
 // 플레이어 데이터 요청, 아이디 필요 없음.
 app.get('/playerData', (req, res) => {
-  res.json(players);
+  res.status(200).json({data: TransformData()});
   console.log(`${req.ip} 에서 플레이어 데이터를 요청하였습니다.`);
 });
 
@@ -410,9 +568,9 @@ app.get('/ready/:id', (req, res) => {
   const playerId = req.params.id;
   if (playerId in players){
     players[playerId][1] = true;
-    res.send("200: ready true");
+    res.status(200).send("200: ready true");
   } else {
-    res.send("404");
+    res.status(404);
   }
   console.log(`${req.ip} 에서 ready 신호를 보냈습니다. ID: ${playerId}`);
 });
@@ -422,9 +580,9 @@ app.get('/notready/:id', (req, res) => {
   const playerId = req.params.id;
   if (playerId in players){
     players[playerId][1] = false;
-    res.send("200: ready false");
+    res.status(200).send("200: ready false");
   } else {
-    res.send("404");
+    res.status(404);
   }
   console.log(`${req.ip} 에서 notready 신호를 보냈습니다. ID: ${playerId}`);
 });
@@ -435,7 +593,7 @@ let nop = 0;
 app.get('/state', (req, res)=>{
   nop = NumOfPlayers();
   
-  res.json({
+  res.status(200).json({
     isPlaying: isPlaying,
     isVoicing: isVoicing,
     isCounting: isCounting,
@@ -452,7 +610,7 @@ app.get('/ard', (req, res)=>{
   ardLastCheckFrame = ARD_TIMEOUT_LIMIT;
   ArdActivityCodeAdd();
 
-  res.json({
+  res.status(200).json({
     do: activityCodes,
     voiceCode: nextVoicePlayCode,
     voiceSpeed: nextVoicePlaySpeed
@@ -466,7 +624,7 @@ app.get('/ard', (req, res)=>{
 app.get('/ardIsVoicing', (req, res) => {
   isVoicing = true;
   console.log("아두이노에서 음성을 재생하였습니다.");
-  res.send("200");
+  res.status(200);
 });
 
 /**
@@ -476,7 +634,7 @@ app.get('/ardIsVoicing', (req, res) => {
 app.get('/ardIsNotVoicing', (req, res) => {
   isVoicing = false;
   console.log("아두이노에서 음성을 종료하였습니다.");
-  res.send("200");
+  res.status(200);
 });
 
 /**
@@ -485,16 +643,53 @@ app.get('/ardIsNotVoicing', (req, res) => {
  */
 app.get('/ardSurvive', (req, res) => {
   var number = req.query.number;
-  players[numToPlayers[number]][3] = true; // isSurvive
+  
+  if (!(number in numToPlayers)){
+    return res.status(404).send('The playerNumber is not exist.');
+  }
+
+  let playerId = numToPlayers[number]
+  if (!players[playerId][3]){
+    players[playerId][3] = true;
+    players[playerId][7] = playFrame;
+  } else {
+    return res.status(403).send('Player is already Survived.');
+  }
+});
+
+// 승리한 플레이어 처리
+app.get('/survived:id', (req, res) => {
+  const playerId = req.params.id;
+
+  if (!(playerId in players)){
+    return res.status(404).send('The playerId is not exist.');
+  }
+
+  if (!players[playerId][3]){
+    players[playerId][3] = true;
+    players[playerId][7] = playFrame;
+  } else {
+    return res.status(403).send('Player is already Survived.');
+  }
 });
 
 // 탈락한 플레이어 처리
-app.get('/falled/:id', (req, res)=>{
+app.get('/falled/:id', (req, res) => {
   const playerId = req.params.id;
   if (playerId in players){
-    delete numToPlayers[players[playerId][2]];
-    delete players[playerId];
+    players[playerId][3] = false; // 승리 여부 false
+    players[playerId][6] = false; // 생존 여부 false
+
+    players[playerId][3] = true;
+    players[playerId][7] = Math.floor(playFrame / FRAME_PER_SECOND);
+  } else {
+    return res.status(404).send("Player is not exist.");
   }
+});
+
+app.get('/resultData', (req, res) => {
+  res.status(200).json({data: lastResultData});
+  console.log(`${req.ip} 에서 게임 결과 데이터를 요청하였습니다.`);
 });
 
 
