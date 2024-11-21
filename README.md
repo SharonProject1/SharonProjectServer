@@ -108,7 +108,7 @@
   - **응답**:
     - ✅ `200`: 정상 처리됨
 
-- **`GET /ardSurvive?number=123`**  
+- **`GET /ardWinner?number=123`**  
   - 아두이노에서 생존자가 발생하면 서버에 알립니다.
   - **쿼리**: `number`
 
@@ -133,8 +133,8 @@
 - 앱은 `check` 요청에 `needToUpdate`가 `true`일 때, 플레이어 데이터를 요청합니다.
   - **데이터 구조**:
     - **key**: `data`
-    - **value**: `[[playerId, connectCheckFrame, isReady, playerNumber, isSurvive, needToUpdate], [playerId, ...], ...]`
-- **예시**: `{"data": [["abcd", 198, false, 456, true, true], ["abdfs", 197, false, 101, true, true], ["weghi", 198, false, 455, true, false]]}`
+    - **value**: `[[playerId, playerNumber, isReady, isAlive, isSurvive, needToUpdate], [playerId, ...], ...]`
+- **예시**: `{"data": [["abcd", 456, false, true, false, false], ["abdfs", 101, true, true, false, true], ["weghi", 455, false, true, false, false]]}`
 
 ---
 
