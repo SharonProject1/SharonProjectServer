@@ -132,9 +132,9 @@
 
 - 앱은 `check` 요청에 `needToUpdate`가 `true`일 때, 플레이어 데이터를 요청합니다.
   - **데이터 구조**:
-    - **key**: `playerId`
-    - **value**: `[connectCheckFrame, isReady, playerNumber, isSurvive, needToUpdate, playerIndex]`
-- **예시**: `{'abcd': [198, false, 456, true, true, 0], 'hasdf': [197, false, 101, true, true, 1], 'wkjnc': [198, false, 455, true, false, 2]}`
+    - **key**: `data`
+    - **value**: `[[playerId, connectCheckFrame, isReady, playerNumber, isSurvive, needToUpdate, playerIndex], [playerId, ...], ...]`
+- **예시**: `{"data": [["abcd", 198, false, 456, true, true, 0], ["abdfs", 197, false, 101, true, true, 1], ["weghi", 198, false, 455, true, false, 2]]}`
 
 ---
 
