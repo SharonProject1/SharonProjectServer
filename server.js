@@ -261,7 +261,7 @@ function DoVoice(){
  * @returns void
  */
 function DoUpdate(){
-  for (playerId in players){
+  for (let playerId in players){
     players[playerId][4] = true;
   }
 }
@@ -681,7 +681,7 @@ app.get('/falled/:id', (req, res) => {
     players[playerId][6] = false; // 생존 여부 false
 
     players[playerId][3] = true;
-    players[playerId][7] = Math.floor(playFrame / FRAME_PER_SECOND);
+    players[playerId][7] = playFrame;
   } else {
     return res.status(404).send("Player is not exist.");
   }
