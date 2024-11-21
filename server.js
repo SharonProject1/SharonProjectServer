@@ -261,7 +261,7 @@ function PlayOnReady(){
     StartCount();
   }
 
-  if (t === 0){
+  if (t === 0 && NumOfPlayers() != 0){
     console.log(players, temp, indexToPlayers, ardLastCheckFrame, ardIsConnet); 
   } // 현재 상태 로그로 남김
 };
@@ -331,6 +331,7 @@ app.get('/join/:id', (req, res) => {
   indexToPlayers[NumOfPlayers() - 1] = playerId;
   res.json({'message':'200'});
   DoUpdate();
+  console.log(`${req.ip} 에서 join 요청을 보냈습니다. ID: ${playerId}`);
 });
 
 // 플레이어 번호 입력 inputNumber/abc?number=123
@@ -346,6 +347,7 @@ app.get('/inputNumber/:id', (req, res) => {
   players[playerId][2] = number;
   numToPlayers[number] = playerId;
   DoUpdate();
+  console.log(`${req.ip} 에서 inputNumber 요청을 보냈습니다. ID: ${playerId}, ${number}`);
 });
 
 var t = 0;
@@ -394,11 +396,13 @@ app.get('/playerData/:id', (req, res) => {
 
   res.json(players);
   players[playerId][4] = false;
+  console.log(`${req.ip} 에서 플레이어 데이터를 요청하였습니다. ID: ${playerId}`);
 });
 
 // 플레이어 데이터 요청, 아이디 필요 없음.
 app.get('/playerData', (req, res) => {
   res.json(players);
+  console.log(`${req.ip} 에서 플레이어 데이터를 요청하였습니다.`);
 });
 
 // 플레이어 준비 신호 반영
@@ -410,6 +414,7 @@ app.get('/ready/:id', (req, res) => {
   } else {
     res.send("404");
   }
+  console.log(`${req.ip} 에서 ready 신호를 보냈습니다. ID: ${playerId}`);
 });
 
 // 플레이어 준비 취소 신호 반영
@@ -421,6 +426,7 @@ app.get('/notready/:id', (req, res) => {
   } else {
     res.send("404");
   }
+  console.log(`${req.ip} 에서 notready 신호를 보냈습니다. ID: ${playerId}`);
 });
 
 
