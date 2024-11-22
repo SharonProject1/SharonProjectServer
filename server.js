@@ -99,7 +99,7 @@ function TransformData(){
   let playerArray = [];
 
   if (NumOfPlayers() != 0){
-    for (playerId in players){
+    for (let playerId in players){
       playerArray.push([playerId, players[playerId][2], players[playerId][1], players[playerId][6], players[playerId][3]]);
     }
     return playerArray;
@@ -184,14 +184,28 @@ function NextVoiceRandom(){
  * @returns rightSortedArray
  */
 function SortRight(arr){
+  if (arr == []){
+    console.log("나갈래 SortRight.");
+    return [];
+  }
   var result = [];
-  for (let elemArr in arr){
+  console.log(arr);
+
+  for (let i = 0; i < arr.length; i++) {
+    console.log(arr[i]);
     if (result.length === 0){
-      result.push(elemArr)
+      result.push(arr[i]);
+      console.log(arr[i]);
     } else {
-      for (let i = 0; i < result.length; i++) {
-        if (result[i][4] > elemArr[4]){
-          result.splice(i, 0, elemArr);
+      for (let j = 0; j < result.length; j++) {
+        if (result[j][4] > arr[i][4]){
+          result.splice(j, 0, arr[i]);
+          console.log(arr[i]);
+          break;
+        }
+        if (j == result.length - 1){
+          result.push(arr[i]);
+          console.log(arr[i]);
           break;
         }
       }
@@ -203,6 +217,8 @@ function SortRight(arr){
     result[count-1][4] = Math.floor(result[count-1][4] / FRAME_PER_SECOND);
   }
 
+  console.log(result);
+  console.log("^^-결과-^^");
   return result;
 }
 
@@ -212,15 +228,45 @@ function SortRight(arr){
  * @returns reverseSortedArray
  */
 function SortReverse(arr){
-  var result = SortRight(arr).reverse();
-  let nop = NumOfPlayers();
-  for (let count = nop; count < result.length + nop; count++) {
-    result[count-1][1] = `${count}등`;
-    result[count-1][4] = Math.floor(result[count-1][4] / FRAME_PER_SECOND);
+  if (arr == []){
+    console.log("나갈래 SortReverse.");
+    return [];
   }
 
+  var result = [];
+  console.log(arr);
+
+  for (let i = 0; i < arr.length; i++) {
+    console.log(arr[i]);
+    if (result.length === 0){
+      result.push(arr[i]);
+      console.log(arr[i]);
+    } else {
+      for (let j = 0; j < result.length; j++) {
+        if (result[j][4] < arr[i][4]){
+          result.splice(j, 0, arr[i]);
+          console.log(arr[i]);
+          break;
+        }
+        if (j == result.length - 1){
+          result.push(arr[i]);
+          console.log(arr[i]);
+          break;
+        }
+      }
+    }
+  }
+
+  for (let count = 0; count < result.length; count++) {
+    result[count][1] = `${count + a.length + 1}등`;
+    result[count][4] = Math.floor(result[count][4] / FRAME_PER_SECOND);
+  }
+
+  console.log(result);
+  console.log("^^-결과-^^");
   return result;
 }
+
 
 /**
  * 게임 시작 카운트 다운을 시작하는 함수
@@ -289,29 +335,48 @@ function CheckConnect(){
   }
 }
 
+
+let a = [];
+let b = [];
+let c = [];
 /**
- * 
+ * 게임 결과 데이터를 제작합니다.
  * @returns resultArray
  */
 function ResultArray(){
-  let a = [];
-  let b = [];
-  let c = [];
-
   let resultArray = [];
 
+  a = [];
+  b = [];
+  c = [];
 
   for (let playerId in players){
     if (players[playerId][8] && players[playerId][3]){
-      a.push(["survived", "", players[playerId][2], playerId, players[playerId][7]])
+      a.push(["survived", "-", players[playerId][2], playerId, players[playerId][7]]);
+      console.log(["survived", "-", players[playerId][2], playerId, players[playerId][7], players[playerId][3]]);
     } else if (players[playerId][8] && !players[playerId][3]){
-      b.push(["failed", "", players[playerId][2], playerId, players[playerId][7]])
+      b.push(["failed", "-", players[playerId][2], playerId, players[playerId][7]])
+      console.log(["failed", "-", players[playerId][2], playerId, players[playerId][7], players[playerId][3]]);
     } else {
-      c.push(["disconnected", '-', players[playerId][2], playerId, '-'])
+      c.push(["disconnected", '-', players[playerId][2], playerId, '-']);
+      console.log(["disconnected", "-", players[playerId][2], playerId, '-']);
     }
   }
 
-  resultArray = [...SortRight(a), ...SortReverse(b), ...c];
+  a = SortRight(a);
+  b = SortReverse(b);
+
+  for (let i = 0; i < a.length; i++) {
+    resultArray.push(a[i]);
+  }
+  for (let i = 0; i < b.length; i++) {
+    resultArray.push(b[i]);
+  }
+  for (let i = 0; i < c.length; i++) {
+    resultArray.push(c[i]);
+  }
+
+  console.log(resultArray);
 
   return resultArray;
 }
@@ -497,6 +562,7 @@ app.get('/inputNumber/:id', (req, res) => {
   players[playerId][2] = number;
   numToPlayers[number] = playerId;
   DoUpdate();
+  res.status(200).send("Success Request.");
   console.log(`${req.ip} 에서 inputNumber 요청을 보냈습니다. ID: ${playerId}, ${number}`);
 });
 
@@ -654,6 +720,7 @@ app.get('/ardSurvive', (req, res) => {
   if (!players[playerId][3]){
     players[playerId][3] = true;
     players[playerId][7] = playFrame;
+    res.status(200).send("Success Request.");
   } else {
     return res.status(403).send('Player is already Survived.');
   }
@@ -667,9 +734,14 @@ app.get('/survived/:id', (req, res) => {
     return res.status(404).send('The playerId is not exist.');
   }
 
+  if (!players[playerId][6]){
+    return res.status(403).send('Player is already dead.');
+  }
+
   if (!players[playerId][3]){
     players[playerId][3] = true;
     players[playerId][7] = playFrame;
+    res.status(200).send("Success Request.");
   } else {
     return res.status(403).send('Player is already Survived.');
   }
@@ -682,8 +754,8 @@ app.get('/falled/:id', (req, res) => {
     players[playerId][3] = false; // 승리 여부 false
     players[playerId][6] = false; // 생존 여부 false
 
-    players[playerId][3] = true;
     players[playerId][7] = playFrame;
+    res.status(200).send("Success Request. Failed.");
   } else {
     return res.status(404).send("Player is not exist.");
   }
