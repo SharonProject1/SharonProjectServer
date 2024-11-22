@@ -100,7 +100,7 @@ function TransformData(){
 
   if (NumOfPlayers() != 0){
     for (let playerId in players){
-      playerArray.push([playerId, players[playerId][2], players[playerId][1], players[playerId][6], players[playerId][3]]);
+      playerArray.push([playerId, players[playerId][2] == null ? "NaN" : players[playerId][2].toString(), players[playerId][1] ? "true" : "false", players[playerId][6] ? "true" : "false", players[playerId][3] ? "true" : "false"]);
     }
     return playerArray;
   } else {
@@ -539,7 +539,9 @@ app.get('/join/:id', (req, res) => {
     return res.status(403).send('Server is full.');
   }
 
-  /* If is playing */
+  if (isPlaying){
+    return res.status(403).send('Game is playing.');
+  }
 
   // 새로운 플레이어 추가 또는 기존 플레이어 시간 갱신
   players[playerId] = [TIMEOUT_LIMIT, false, undefined, false, true, NumOfPlayers(), true, 0, true];
@@ -599,11 +601,11 @@ app.get('/check/:id', (req, res) => {
   if (playerId in players) {
     players[playerId][0] = TIMEOUT_LIMIT;  // 플레이어 활동 시간 갱신
     res.status(200).json({
-      connect: true,
-      needToUpdate: players[playerId][4]
+      connect: "true",
+      needToUpdate: players[playerId][4] ? "true" : "false"
     });
   } else {
-    res.status(206).json({ connect: false });
+    res.status(206).json({ connect: "false" });
   }
 });
 
@@ -638,7 +640,7 @@ app.get('/ready/:id', (req, res) => {
     players[playerId][1] = true;
     res.status(200).send("200: ready true");
   } else {
-    res.status(404);
+    res.status(404).send("Player is not exist.");
   }
   console.log(`${req.ip} 에서 ready 신호를 보냈습니다. ID: ${playerId}`);
 });
@@ -650,7 +652,7 @@ app.get('/notready/:id', (req, res) => {
     players[playerId][1] = false;
     res.status(200).send("200: ready false");
   } else {
-    res.status(404);
+    res.status(404).send("Player is not exist.");
   }
   console.log(`${req.ip} 에서 notready 신호를 보냈습니다. ID: ${playerId}`);
 });
@@ -660,16 +662,20 @@ let nop = 0;
 // 게임 상태 반환: 앱이 보내는 파트
 app.get('/state', (req, res)=>{
   nop = NumOfPlayers();
-  
+  let noap = NumOfAlivePlayers();
+
   res.status(200).json({
-    isPlaying: isPlaying,
-    isVoicing: isVoicing,
-    isCounting: isCounting,
-    serverFPS: FRAME_PER_SECOND,
-    leftCountDownFrame: leftCountDownFrame,
-    numberOfPlayers: nop,
-    playFrame: playFrame,
-    timeLeft: MAX_PLAY_TIME - players/FRAME_PER_SECOND
+    data: [
+      isPlaying.toString(), 
+      isVoicing.toString(), 
+      isCounting.toString(), 
+      FRAME_PER_SECOND.toString(),
+      leftCountDownFrame.toString(),
+      nop.toString(),
+      noap.toString(),
+      playFrame.toString(),
+      (MAX_PLAY_TIME - playFrame/FRAME_PER_SECOND).toString()
+    ]
   })
 });
 
@@ -679,9 +685,9 @@ app.get('/ard', (req, res)=>{
   ArdActivityCodeAdd();
 
   res.status(200).json({
-    do: activityCodes,
-    voiceCode: nextVoicePlayCode,
-    voiceSpeed: nextVoicePlaySpeed
+    do: activityCodes.toString(),
+    voiceCode: nextVoicePlayCode.toString(),
+    voiceSpeed: nextVoicePlaySpeed.toString()
   });
   console.log('아두이노에서 신호가 왔습니다.');
 
@@ -741,21 +747,30 @@ app.get('/survived/:id', (req, res) => {
   if (!players[playerId][3]){
     players[playerId][3] = true;
     players[playerId][7] = playFrame;
-    res.status(200).send("Success Request.");
+    return res.status(200).send(`Success Request. ${playerId} Player is Survived.`);
   } else {
     return res.status(403).send('Player is already Survived.');
   }
 });
 
 // 탈락한 플레이어 처리
-app.get('/falled/:id', (req, res) => {
+app.get('/failed/:id', (req, res) => {
   const playerId = req.params.id;
+
+  if (players[playerId][3]){
+    return res.status(403).send('Player is already Survived.');
+  }
+
+  if (!players[playerId][6]){
+    return res.status(403).send('Player is already Dead.');
+  }
+
   if (playerId in players){
     players[playerId][3] = false; // 승리 여부 false
     players[playerId][6] = false; // 생존 여부 false
 
     players[playerId][7] = playFrame;
-    res.status(200).send("Success Request. Failed.");
+    res.status(200).send(`Success Request. ${playerId} Player is failed.`);
   } else {
     return res.status(404).send("Player is not exist.");
   }
