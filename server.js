@@ -10,7 +10,7 @@ const MAX_PLAYERS = 10;
 const MIN_PLAYERS = 3;
 const TIMEOUT_LIMIT = 200;  // *1/10초 대기시간
 const FRAME_PER_SECOND = 60;
-const MAX_PLAY_TIME = 180; // 180? 초
+const MAX_PLAY_TIME = 20; // 60? 초
 
 // Random System
 const DECREASE_RATIO = 0.925;
@@ -100,7 +100,7 @@ function TransformData(){
 
   if (NumOfPlayers() != 0){
     for (playerId in players){
-      playerArray.push([playerId, players[playerId][2], players[playerId][1], players[playerId][6], players[playerId][3], players[playerId][4]])
+      playerArray.push([playerId, players[playerId][2], players[playerId][1], players[playerId][6], players[playerId][3]]);
     }
     return playerArray;
   } else {
@@ -184,7 +184,7 @@ function NextVoiceRandom(){
  * @returns rightSortedArray
  */
 function SortRight(arr){
-  let result = [];
+  var result = [];
   for (let elemArr in arr){
     if (result.length === 0){
       result.push(elemArr)
@@ -199,8 +199,8 @@ function SortRight(arr){
   }
 
   for (let count = 1; count < result.length + 1; count++) {
-    result[i-1][1] = `${i}등`;
-    result[i-1][4] = Math.floor(result[i-1][4] / FRAME_PER_SECOND);
+    result[count-1][1] = `${count}등`;
+    result[count-1][4] = Math.floor(result[count-1][4] / FRAME_PER_SECOND);
   }
 
   return result;
@@ -212,11 +212,11 @@ function SortRight(arr){
  * @returns reverseSortedArray
  */
 function SortReverse(arr){
-  let result = SortRight(arr).reverse();
+  var result = SortRight(arr).reverse();
   let nop = NumOfPlayers();
   for (let count = nop; count < result.length + nop; count++) {
-    result[i-1][1] = `${i}등`;
-    result[i-1][4] = Math.floor(result[i-1][4] / FRAME_PER_SECOND);
+    result[count-1][1] = `${count}등`;
+    result[count-1][4] = Math.floor(result[count-1][4] / FRAME_PER_SECOND);
   }
 
   return result;
@@ -303,15 +303,15 @@ function ResultArray(){
 
   for (let playerId in players){
     if (players[playerId][8] && players[playerId][3]){
-      a.push(["survived", null, players[playerId][2], playerId, players[playerId][7]])
+      a.push(["survived", "", players[playerId][2], playerId, players[playerId][7]])
     } else if (players[playerId][8] && !players[playerId][3]){
-      b.push(["failed", null, players[playerId][2], playerId, players[playerId][7]])
+      b.push(["failed", "", players[playerId][2], playerId, players[playerId][7]])
     } else {
       c.push(["disconnected", '-', players[playerId][2], playerId, '-'])
     }
   }
 
-  resultArray = SortRight(a) + SortReverse(b) + c;
+  resultArray = [...SortRight(a), ...SortReverse(b), ...c];
 
   return resultArray;
 }
@@ -473,6 +473,8 @@ app.get('/join/:id', (req, res) => {
   if (Object.keys(players).length >= MAX_PLAYERS) {
     return res.status(403).send('Server is full.');
   }
+
+  /* If is playing */
 
   // 새로운 플레이어 추가 또는 기존 플레이어 시간 갱신
   players[playerId] = [TIMEOUT_LIMIT, false, undefined, false, true, NumOfPlayers(), true, 0, true];
@@ -658,7 +660,7 @@ app.get('/ardSurvive', (req, res) => {
 });
 
 // 승리한 플레이어 처리
-app.get('/survived:id', (req, res) => {
+app.get('/survived/:id', (req, res) => {
   const playerId = req.params.id;
 
   if (!(playerId in players)){
