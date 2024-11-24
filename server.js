@@ -518,10 +518,13 @@ function PlayOnGame(){
 };
 
 
+// 정적 파일 제공 설정
+app.use(express.static(path.join(__dirname, 'public')));
+
 //////////////////////////////////////////////////
 // 메인 페이지
 app.get('/', (req, res) => {
-  res.status(200).sendFile(path.join(__dirname, 'index2.html'));
+  res.status(200).sendFile(path.join(__dirname, 'views', 'index2.html'));
   console.log(`${req.ip} 에서 메인 페이지에 접속하였습니다.`);
 });
 
@@ -657,6 +660,10 @@ app.get('/notready/:id', (req, res) => {
   console.log(`${req.ip} 에서 notready 신호를 보냈습니다. ID: ${playerId}`);
 });
 
+// 게임이 시작되었는지 반환
+app.get('/isRunning', (req, res) => {
+  res.status(200).json({data: isPlaying.toString()});
+});
 
 let nop = 0;
 // 게임 상태 반환: 앱이 보내는 파트
@@ -674,7 +681,7 @@ app.get('/state', (req, res)=>{
       nop.toString(),
       noap.toString(),
       playFrame.toString(),
-      (MAX_PLAY_TIME - playFrame/FRAME_PER_SECOND).toString()
+      Math.floor(MAX_PLAY_TIME - playFrame/FRAME_PER_SECOND).toString()
     ]
   })
 });
