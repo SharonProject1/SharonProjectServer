@@ -155,7 +155,7 @@
   - **데이터 구조**:
     - **key**: `data`
     - **value**: `[[playerState, Rank, playerNumber, playerId, playTime], [playerState, ...], ...]`
-- **예시**: `{"data": [["survived", "2등", "456", "Faker", "25s"], ...]}`
+- **예시**: `{"data": [["survived", "2", "456", "Faker", "25"], ...]}`
 - **`playerState`**: `"survived"`, `"failed"`, `"disconnected"`
 
 ---
