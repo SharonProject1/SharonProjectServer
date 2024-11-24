@@ -1,0 +1,29 @@
+name: Sync README.md to public folder
+
+on:
+  push:
+    paths:
+      - "README.md" # 루트의 README.md 파일이 변경될 때만 실행
+
+jobs:
+  sync-readme:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 레포지토리 체크아웃
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. README.md 복사
+      - name: Copy README.md to public folder
+        run: |
+          cp README.md public/README.md
+
+      # 3. 변경 사항 커밋 및 푸시
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/README.md
+          git commit -m "Sync README.md to public/README.md"
+          git push
