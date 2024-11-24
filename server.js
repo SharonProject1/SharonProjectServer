@@ -213,7 +213,7 @@ function SortRight(arr){
   }
 
   for (let count = 1; count < result.length + 1; count++) {
-    result[count-1][1] = `${count}등`;
+    result[count-1][1] = count.toString();
     result[count-1][4] = Math.floor(result[count-1][4] / FRAME_PER_SECOND);
   }
 
@@ -258,7 +258,7 @@ function SortReverse(arr){
   }
 
   for (let count = 0; count < result.length; count++) {
-    result[count][1] = `${count + a.length + 1}등`;
+    result[count][1] = (count + a.length + 1).toString();
     result[count][4] = Math.floor(result[count][4] / FRAME_PER_SECOND);
   }
 
