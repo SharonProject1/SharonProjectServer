@@ -31,7 +31,7 @@ let indexToPlayers = {} // key: 플레이어 인덱스, value: 플레이어 아�
 let activityCodes = '0'; // 아두이노가 다음 프레임에 해야할 일들
 
 var isUpdating = false;
-var isPlaying = false;
+var isRunning = false;
 var isCounting = false;
 var isVoicing = false;
 var playFrame = 0;
@@ -283,7 +283,7 @@ function StartCount(){
 function Start(){
   console.log("게임을 시작하겠습니다!");
   isCounting = false;
-  isPlaying = true;
+  isRunning = true;
 }
 
 /**
@@ -318,7 +318,7 @@ function DoUpdate(){
 function CheckConnect(){
   for (let playerId in players) {
     if (players[playerId][0] <= 0) {
-      if (isPlaying){
+      if (isRunning){
         console.log(`Player ${playerId} has been FAILED due to inactivity`);
         players[playerId][3] = false;
         players[playerId][6] = false;
@@ -434,7 +434,7 @@ function ResetUpdate(){
  * 게임을 종료하는 함수
  */
 function GameEnd(){
-  isPlaying = false;
+  isRunning = false;
   isUpdating = true;
   console.log("게임을 종료합니다.");
 
@@ -542,7 +542,7 @@ app.get('/join/:id', (req, res) => {
     return res.status(403).send('Server is full.');
   }
 
-  if (isPlaying){
+  if (isRunning){
     return res.status(403).send('Game is playing.');
   }
 
@@ -577,13 +577,13 @@ setInterval(() => {
   t = (t + 1) % FRAME_PER_SECOND // 0 <= t <= FPS-1
 
   if (!isUpdating){
-    if (!isPlaying && !isCounting){
+    if (!isRunning && !isCounting){
       if (t % 6 == 0){ // 6프레임마다 실행
         PlayOnReady();
       }
     } 
     
-    else if (isPlaying && !isCounting){
+    else if (isRunning && !isCounting){
       PlayOnGame();
     } 
     
@@ -662,7 +662,7 @@ app.get('/notready/:id', (req, res) => {
 
 // 게임이 시작되었는지 반환
 app.get('/isRunning', (req, res) => {
-  res.status(200).json({data: isPlaying.toString()});
+  res.status(200).json({data: isRunning.toString()});
 });
 
 let nop = 0;
@@ -673,7 +673,7 @@ app.get('/state', (req, res)=>{
 
   res.status(200).json({
     data: [
-      isPlaying.toString(), 
+      isRunning.toString(), 
       isVoicing.toString(), 
       isCounting.toString(), 
       FRAME_PER_SECOND.toString(),

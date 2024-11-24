@@ -1,4 +1,4 @@
-# 🌸 **무궁화 꽃 게임 서버** 🌸 테스트로 변경!!2
+# 🌸 **무궁화 꽃 게임 서버** 🌸
 
 이 서버는 Express를 사용하여 **"무궁화 꽃이 피었습니다"** 게임의 멀티플레이어 상호작용을 처리합니다. 플레이어의 접속, 게임 상태 관리, 준비 상태 체크 등을 지원합니다.
 
@@ -165,9 +165,9 @@
 - 게임 진행 상황이 궁금할 때 `/state`를 통해 게임 상황을 반환 받습니다.
   - **데이터 구조**:
     - **key**: `data`
-    - **value**: `[isPlaying, isVoicing, isCounting, serverFPS, leftCountDownFrame, numberOfPlayers, numberOfPlayPlayers, playFrame, timeLeft]` (각 데이터는 String으로)
+    - **value**: `[isRunning, isVoicing, isCounting, serverFPS, leftCountDownFrame, numberOfPlayers, numberOfPlayPlayers, playFrame, timeLeft]` (각 데이터는 String으로)
   - **설명**:
-    - `isPlaying`: 0. 게임 진행 여부
+    - `isRunning`: 0. 게임 진행 여부
     - `isVoicing`: 1. 음성 재생 중 여부
     - `isCounting`: 2. 카운트다운 중 여부
     - `serverFPS`: 3. 서버 고정 프레임
