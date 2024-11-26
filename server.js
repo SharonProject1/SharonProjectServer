@@ -168,8 +168,7 @@ function NextRandom(){
 }
 
 /**
- * nextVoicePlayFrame 을 무작위로 결정하고,
- * minVoiceFrame, maxVoiceFrame 결정하는 함수
+ * 다음 음성의 속도와 속성을 무작위로 결정하는 함수
  * @returns void
  */
 function NextVoiceRandom(){
@@ -185,27 +184,21 @@ function NextVoiceRandom(){
  */
 function SortRight(arr){
   if (arr == []){
-    console.log("나갈래 SortRight.");
     return [];
   }
   var result = [];
-  console.log(arr);
 
   for (let i = 0; i < arr.length; i++) {
-    console.log(arr[i]);
     if (result.length === 0){
       result.push(arr[i]);
-      console.log(arr[i]);
     } else {
       for (let j = 0; j < result.length; j++) {
         if (result[j][4] > arr[i][4]){
           result.splice(j, 0, arr[i]);
-          console.log(arr[i]);
           break;
         }
         if (j == result.length - 1){
           result.push(arr[i]);
-          console.log(arr[i]);
           break;
         }
       }
@@ -217,8 +210,6 @@ function SortRight(arr){
     result[count-1][4] = Math.floor(result[count-1][4] / FRAME_PER_SECOND);
   }
 
-  console.log(result);
-  console.log("^^-결과-^^");
   return result;
 }
 
@@ -229,28 +220,22 @@ function SortRight(arr){
  */
 function SortReverse(arr){
   if (arr == []){
-    console.log("나갈래 SortReverse.");
     return [];
   }
 
   var result = [];
-  console.log(arr);
 
   for (let i = 0; i < arr.length; i++) {
-    console.log(arr[i]);
     if (result.length === 0){
       result.push(arr[i]);
-      console.log(arr[i]);
     } else {
       for (let j = 0; j < result.length; j++) {
         if (result[j][4] < arr[i][4]){
           result.splice(j, 0, arr[i]);
-          console.log(arr[i]);
           break;
         }
         if (j == result.length - 1){
           result.push(arr[i]);
-          console.log(arr[i]);
           break;
         }
       }
@@ -262,8 +247,6 @@ function SortReverse(arr){
     result[count][4] = Math.floor(result[count][4] / FRAME_PER_SECOND);
   }
 
-  console.log(result);
-  console.log("^^-결과-^^");
   return result;
 }
 
@@ -344,8 +327,6 @@ let c = [];
  * @returns resultArray
  */
 function ResultArray(){
-  let resultArray = [];
-
   a = [];
   b = [];
   c = [];
@@ -353,32 +334,17 @@ function ResultArray(){
   for (let playerId in players){
     if (players[playerId][8] && players[playerId][3]){
       a.push(["survived", "-", players[playerId][2], playerId, players[playerId][7]]);
-      console.log(["survived", "-", players[playerId][2], playerId, players[playerId][7], players[playerId][3]]);
     } else if (players[playerId][8] && !players[playerId][3]){
       b.push(["failed", "-", players[playerId][2], playerId, players[playerId][7]])
-      console.log(["failed", "-", players[playerId][2], playerId, players[playerId][7], players[playerId][3]]);
     } else {
       c.push(["disconnected", '-', players[playerId][2], playerId, '-']);
-      console.log(["disconnected", "-", players[playerId][2], playerId, '-']);
     }
   }
 
   a = SortRight(a);
   b = SortReverse(b);
 
-  for (let i = 0; i < a.length; i++) {
-    resultArray.push(a[i]);
-  }
-  for (let i = 0; i < b.length; i++) {
-    resultArray.push(b[i]);
-  }
-  for (let i = 0; i < c.length; i++) {
-    resultArray.push(c[i]);
-  }
-
-  console.log(resultArray);
-
-  return resultArray;
+  return [...a, ...b, ...c]; // 2차원 배열 스프레드
 }
 
 /**
