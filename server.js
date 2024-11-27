@@ -109,6 +109,24 @@ function TransformData(){
 }
 
 /**
+ * 플레이어 아이디에 해당하는 배열을 0번 인덱스로 옮기는 함수
+ * @param {string} ids - 이동할 플레이어 아이디
+ * @param {Array} arr - 2차원 배열
+ * @returns {Array} - 수정된 배열
+ */
+function FirstIdTrans(ids, arr) {
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i][0] === ids) {
+      const [item] = arr.splice(i, 1); // i 번째 요소를 제거하고 저장
+      arr.unshift(item); // 제거한 요소를 배열의 앞에 삽입
+      return arr;
+    }
+  }
+  return arr; // 아이디가 없으면 원래 배열 반환
+}
+
+
+/**
  * 플레이어 인덱스를 정리하는 함수
  * @param {Number} num 
  */
@@ -279,7 +297,7 @@ function DoVoice(){
   loopFrameArray.push(leftLoopFrame);
 
   activityCodes += '2'; // 음성을 재생
-  activityCodes += '2'; // 모터 회전
+  activityCodes += '3'; // 모터 회전
 
   isVoicing = true;
   NextRandom();
@@ -586,12 +604,14 @@ app.get('/playerData/:id', (req, res) => {
     return res.status(404).send('PlayerID is not exist.');
   }
   
+  let temp_p = FirstIdTrans(playerId, TransformData());
+
   if (players[playerId][4]){
     players[playerId][4] = false;
-    res.status(200).json({data: TransformData()});
+    res.status(200).json({data: temp_p});
     console.log(`${req.ip} 에서 플레이어 데이터를 요청하였습니다. ID: ${playerId}`);
   } else {
-    res.status(206).json({data: TransformData()});
+    res.status(206).json({data: temp_p});
     console.log(`${req.ip} 에서 플레이어 데이터를 요청하였으나 불필요한 요청입니다. ID: ${playerId}`);
   }
 });
