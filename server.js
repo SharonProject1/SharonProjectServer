@@ -615,7 +615,7 @@ app.get('/ready/:id', (req, res) => {
 });
 
 // 플레이어 준비 취소 신호 반영
-app.get('/notready/:id', (req, res) => {
+app.get('/notReady/:id', (req, res) => {
   const playerId = req.params.id;
   if (playerId in players){
     players[playerId][1] = false;
