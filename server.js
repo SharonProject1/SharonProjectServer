@@ -326,6 +326,7 @@ function CheckConnect(){
         players[playerId][8] = false;
       } else { // 게임 중이 아닐 때 나간 것
       console.log(`Player ${playerId} has been disconnected due to inactivity`);
+      DoUpdate();
       ExitPlayerIndex(players[playerId][5]);
       delete numToPlayers[players[playerId][2]];
       delete players[playerId];
@@ -589,7 +590,7 @@ app.get('/check/:id', (req, res) => {
     players[playerId][0] = TIMEOUT_LIMIT;  // 플레이어 활동 시간 갱신
     res.status(200).json({
       connect: "true",
-      needToUpdate: players[playerId][4] ? "true" : "false"
+      needToUpdate: players[playerId][4]
     });
   } else {
     res.status(206).json({ connect: "false" });
@@ -601,6 +602,7 @@ app.get('/playerData/:id', (req, res) => {
   const playerId = req.params.id;
 
   if (!(playerId in players)){
+    console.log(`${req.ip} 에서 플레이어 데이터를 요청하였으나 오류입니다. ID: ${playerId}`);
     return res.status(404).send('PlayerID is not exist.');
   }
   
