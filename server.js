@@ -643,12 +643,13 @@ app.get('/notReady/:id', (req, res) => {
   } else {
     res.status(404).send("Player is not exist.");
   }
-  console.log(`${req.ip} 에서 notready 신호를 보냈습니다. ID: ${playerId}`);
+  console.log(`${req.ip} 에서 notReady 신호를 보냈습니다. ID: ${playerId}`);
 });
 
-// 게임이 시작되었는지 반환
+// 게임이 시작되었는지 반환 (<boolean>)
 app.get('/isRunning', (req, res) => {
-  res.status(200).json({data: isRunning.toString()});
+  res.status(200).json({data: isRunning});
+  console.log(`${req.ip} 에서 isRunning 신호를 보냈습니다.`);
 });
 
 let nop = 0;
@@ -723,6 +724,16 @@ app.get('/ardSurvive', (req, res) => {
   } else {
     return res.status(403).send('Player is already Survived.');
   }
+});
+
+// 아두이노 행동코드 테스트 
+app.get('/ardTest/:number', (req, res) => {
+  const tempNumber = req.params.number;
+  activityCodes += tempNumber.toString();
+  res.status(200).send(`${tempNumber} 추가 완료.`);
+
+  console.log(`${req.ip} 에서 ready 신호를 보냈습니다. activityCodes: ${activityCodes}`);
+
 });
 
 // 승리한 플레이어 처리
