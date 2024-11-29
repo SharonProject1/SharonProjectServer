@@ -158,6 +158,7 @@
     - **value**: `[[playerId, playerNumber, isReady, isAlive, isSurvive], [playerId, ...], ...]`
 - **예시**: `{"data": [["abcd", "456", "false", "true", "false"], ["abdfs", "101", "true", "true", "false"], ["weghi", "455", "false", "true", "false"]]}`
 - **❗️주의 사항❗️**: 만약 playerNumber 가 정의되지 않았다면 `"NaN"`으로 반환됩니다.
+- **+ '나'의 데이터를 0번 인덱스에 둡니다.**
 
 ---
 
