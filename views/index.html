@@ -16,45 +16,21 @@
 
     <div id="players">
         <!-- 각 플레이어의 연결 및 준비 상태를 표시하는 영역 -->
-        <div class="player-container">
-            <label for="player1-id">Player 1 ID:</label>
-            <input type="text" id="player1-id" placeholder="Enter ID">
-            <button onclick="connectPlayer('player1')">Connect</button>
-            <button id="player1-ready-btn" onclick="toggleReady('player1')" disabled>Ready</button>
-            <div>Status: <span id="player1-status">Disconnected</span></div>
-        </div>
-        
-        <div class="player-container">
-            <label for="player2-id">Player 2 ID:</label>
-            <input type="text" id="player2-id" placeholder="Enter ID">
-            <button onclick="connectPlayer('player2')">Connect</button>
-            <button id="player2-ready-btn" onclick="toggleReady('player2')" disabled>Ready</button>
-            <div>Status: <span id="player2-status">Disconnected</span></div>
-        </div>
-        
-        <div class="player-container">
-            <label for="player3-id">Player 3 ID:</label>
-            <input type="text" id="player3-id" placeholder="Enter ID">
-            <button onclick="connectPlayer('player3')">Connect</button>
-            <button id="player3-ready-btn" onclick="toggleReady('player3')" disabled>Ready</button>
-            <div>Status: <span id="player3-status">Disconnected</span></div>
-        </div>
-        
-        <div class="player-container">
-            <label for="player4-id">Player 4 ID:</label>
-            <input type="text" id="player4-id" placeholder="Enter ID">
-            <button onclick="connectPlayer('player4')">Connect</button>
-            <button id="player4-ready-btn" onclick="toggleReady('player4')" disabled>Ready</button>
-            <div>Status: <span id="player4-status">Disconnected</span></div>
-        </div>
-        
-        <div class="player-container">
-            <label for="player5-id">Player 5 ID:</label>
-            <input type="text" id="player5-id" placeholder="Enter ID">
-            <button onclick="connectPlayer('player5')">Connect</button>
-            <button id="player5-ready-btn" onclick="toggleReady('player5')" disabled>Ready</button>
-            <div>Status: <span id="player5-status">Disconnected</span></div>
-        </div>
+        <!-- 아래 부분이 10명으로 확장 -->
+        <script>
+            const maxPlayers = 10; // 최대 인원
+            for (let i = 1; i <= maxPlayers; i++) {
+                document.write(`
+                    <div class="player-container">
+                        <label for="player${i}-id">Player ${i} ID:</label>
+                        <input type="text" id="player${i}-id" placeholder="Enter ID">
+                        <button onclick="connectPlayer('player${i}')">Connect</button>
+                        <button id="player${i}-ready-btn" onclick="toggleReady('player${i}')" disabled>Ready</button>
+                        <div>Status: <span id="player${i}-status">Disconnected</span></div>
+                    </div>
+                `);
+            }
+        </script>
     </div>
 
     <script>

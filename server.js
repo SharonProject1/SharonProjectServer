@@ -100,7 +100,7 @@ function TransformData(){
 
   if (NumOfPlayers() != 0){
     for (let playerId in players){
-      playerArray.push([playerId, players[playerId][2] == null ? "NaN" : players[playerId][2].toString(), players[playerId][1] ? "true" : "false", players[playerId][6] ? "true" : "false", players[playerId][3] ? "true" : "false"]);
+      playerArray.push([playerId, players[playerId][2] === '0' ? "NaN" : players[playerId][2].toString(), players[playerId][1] ? "true" : "false", players[playerId][6] ? "true" : "false", players[playerId][3] ? "true" : "false"]);
     }
     return playerArray;
   } else {
@@ -532,7 +532,7 @@ app.get('/join/:id', (req, res) => {
   }
 
   // 새로운 플레이어 추가 또는 기존 플레이어 시간 갱신
-  players[playerId] = [TIMEOUT_LIMIT, false, undefined, false, true, NumOfPlayers(), true, 0, true];
+  players[playerId] = [TIMEOUT_LIMIT, false, '0', false, true, NumOfPlayers(), true, 0, true];
   indexToPlayers[NumOfPlayers() - 1] = playerId;
   res.status(200).send(`You join server ${playerId}`);
   DoUpdate();
@@ -542,12 +542,16 @@ app.get('/join/:id', (req, res) => {
 // 플레이어 번호 입력 inputNumber/abc?number=123
 app.get('/inputNumber/:id', (req, res) => {
   const playerId = req.params.id;
-  let number = req.query.number;
+  let number = req.query.number.toString();
 
   // 이미 연결된 플레이어의 번호로 대응 불가
   if (number in numToPlayers){
-    return res.status(403).send('Number is already exist.');
+    return res.status(403).json({
+      string :'Number is already exist.'
+    });
   }
+
+  console.log(`${req.ip} 에서 inputNumber 요청을 시작했습니다.`);
 
   players[playerId][2] = number;
   numToPlayers[number] = playerId;
@@ -634,9 +638,14 @@ app.get('/ready/:id', (req, res) => {
   const playerId = req.params.id;
   if (playerId in players){
     players[playerId][1] = true;
-    res.status(200).send("200: ready true");
+    res.status(200).json({
+      string: "200: ready true"
+  });
+  DoUpdate();
   } else {
-    res.status(404).send("Player is not exist.");
+    res.status(404).json({
+      string: "Player is not exist."
+    });
   }
   console.log(`${req.ip} 에서 ready 신호를 보냈습니다. ID: ${playerId}`);
 });
@@ -646,17 +655,30 @@ app.get('/notReady/:id', (req, res) => {
   const playerId = req.params.id;
   if (playerId in players){
     players[playerId][1] = false;
-    res.status(200).send("200: ready false");
+    res.status(200).json({
+      string: "200: ready false"
+    });
+    DoUpdate();
   } else {
-    res.status(404).send("Player is not exist.");
+    res.status(404).json({
+      string: "Player is not exist."
+    });
   }
   console.log(`${req.ip} 에서 notReady 신호를 보냈습니다. ID: ${playerId}`);
 });
 
 // 게임이 시작되었는지 반환 (<boolean>)
 app.get('/isRunning', (req, res) => {
-  res.status(200).json({data: isRunning});
-  console.log(`${req.ip} 에서 isRunning 신호를 보냈습니다.`);
+  res.status(200).json({data: !isRunning && isCounting});
+  console.log(`${req.ip} 에서 isRunning 신호를 보냈습니다. ${!isRunning && isCounting}`);
+});
+
+// 게임이 시작되었는지 반환 (<boolean>)
+app.get('/isRunning/:id', (req, res) => {
+  const playerId = req.params.id;
+
+  res.status(200).json({data: !isRunning && isCounting});
+  console.log(`${req.ip} 에서 isRunning 신호를 보냈습니다. ${!isRunning && isCounting}, ${playerId}`);
 });
 
 let nop = 0;
