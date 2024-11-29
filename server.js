@@ -552,7 +552,9 @@ app.get('/inputNumber/:id', (req, res) => {
   players[playerId][2] = number;
   numToPlayers[number] = playerId;
   DoUpdate();
-  res.status(200).send("Success Request.");
+  res.status(200).json({
+    string: "Success Request."
+  });
   console.log(`${req.ip} 에서 inputNumber 요청을 보냈습니다. ID: ${playerId}, ${number}`);
 });
 
@@ -590,8 +592,11 @@ app.get('/check/:id', (req, res) => {
     players[playerId][0] = TIMEOUT_LIMIT;  // 플레이어 활동 시간 갱신
     res.status(200).json({
       connect: "true",
-      needToUpdate: players[playerId][4]
+      needToUpdate: players[playerId][4],
+      string: `test ${t}`
     });
+    // e2e 테스트
+    console.log(`${players[playerId][4]} 를 보냈습니다. "test ${t}": ${playerId}`);
   } else {
     res.status(206).json({ connect: "false" });
   }
