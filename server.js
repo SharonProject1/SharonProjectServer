@@ -8,9 +8,9 @@ app.use(cors());
 
 const MAX_PLAYERS = 10;
 const MIN_PLAYERS = 3;
-const TIMEOUT_LIMIT = 200;  // *1/10초 대기시간
+const TIMEOUT_LIMIT = 50;  // *1/Frame초 대기시간
 const FRAME_PER_SECOND = 60;
-const MAX_PLAY_TIME = 20; // 60? 초
+const MAX_PLAY_TIME = 100; // 60? 초
 
 // Random System
 const DECREASE_RATIO = 0.925;
@@ -190,9 +190,7 @@ function NextRandom(){
  * @returns void
  */
 function NextVoiceRandom(){
-  nextVoicePlayCode = Randomn(0, 9);
-
-  
+  nextVoicePlayCode = Randomn(8, 23);
 }
 
 /**
@@ -294,12 +292,12 @@ function Start(){
 function DoVoice(){
   leftLoopFrame = Randoms(minLoopFrame, maxLoopFrame);
   console.log(`Voice! Next Loop Frame: ${leftLoopFrame}`);
+  NextVoiceRandom();
+  console.log(`다음은 ${nextVoicePlayCode} 번으로 전송합니다.`);
   loopFrameArray.push(leftLoopFrame);
 
   activityCodes += '2'; // 음성을 재생
-  activityCodes += '3'; // 모터 회전
 
-  isVoicing = true;
   NextRandom();
 }
 
@@ -320,6 +318,7 @@ function CheckConnect(){
   for (let playerId in players) {
     if (players[playerId][0] <= 0) {
       if (isRunning){
+        if (!players[playerId][8]) continue;
         console.log(`Player ${playerId} has been FAILED due to inactivity`);
         players[playerId][3] = false;
         players[playerId][6] = false;
@@ -332,7 +331,10 @@ function CheckConnect(){
       delete players[playerId];
       }
     } else {
-      players[playerId][0] -= 1;  // 연결 확인 시간이 경과할 때마다 감소
+      if (!isCounting){
+        players[playerId][0] -= 1;  // 연결 확인 시간이 경과할 때마다 감소
+        console.log(`${players[playerId][0]} 남았습니다. ${playerId}`)
+      }
     }
   }
 }
@@ -468,6 +470,7 @@ function PlayOnGame(){
 
   if (playFrame % 6 == 0){
     console.log(`Current Game Frame: ${playFrame}`);
+    CheckConnect();
   }
 
   // 게임 시간이 초과되었을 때 게임 종료
@@ -583,7 +586,7 @@ setInterval(() => {
     }
   }
   else if (isUpdating){ // 반대를 강조하기 위해서 else if.
-    /* Update Logic */
+    /* Update Logic */  
   }
 }, 1000/FRAME_PER_SECOND);  // 100ms마다 실행 : 10FPS
 
@@ -600,7 +603,7 @@ app.get('/check/:id', (req, res) => {
       string: `test ${t}`
     });
     // e2e 테스트
-    console.log(`${players[playerId][4]} 를 보냈습니다. "test ${t}": ${playerId}`);
+    console.log(`${players[playerId][4]}, Check 요청을 보냈습니다. "test ${t}": ${playerId}`);
   } else {
     res.status(206).json({ connect: "false" });
   }
@@ -712,7 +715,7 @@ app.get('/ard', (req, res)=>{
     voiceCode: nextVoicePlayCode.toString(),
     voiceSpeed: nextVoicePlaySpeed.toString()
   });
-  console.log('아두이노에서 신호가 왔습니다.');
+  console.log(`아두이노에서 신호가 왔습니다. ${activityCodes.toString()} ${nextVoicePlayCode.toString()}`);
 
   ArdActivityCodeRemove();
 });
@@ -758,6 +761,12 @@ app.get('/ardSurvive', (req, res) => {
 // 아두이노 행동코드 테스트 
 app.get('/ardTest/:number', (req, res) => {
   const tempNumber = req.params.number;
+
+  if (tempNumber.toString() === '10'){
+    DoVoice();
+    return res.status(200).send(`${tempNumber} 추가 완료.`);
+  }
+
   activityCodes += tempNumber.toString();
   res.status(200).send(`${tempNumber} 추가 완료.`);
 

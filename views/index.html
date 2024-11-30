@@ -73,13 +73,9 @@
                     .then(data => {
                         const statusText = data.connect ? "Connected" : "Disconnected";
                         document.getElementById(`${playerNumber}-status`).textContent = statusText;
-                        if (!data.connect) {
-                            stopChecking(playerNumber);
-                        }
                     })
                     .catch(error => {
                         console.error("Error:", error);
-                        stopChecking(playerNumber);
                     });
             }, 1000); // 1초마다 check 요청
         }
