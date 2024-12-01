@@ -12,8 +12,8 @@ const FRAME_PER_SECOND = 60;
 const MAX_PLAY_TIME = 30; // 60? 초
 
 // Random System
-const DECREASE_RATIO = 0.925;
-const MIDDLE_WEIGHT = 1/10;
+const DECREASE_RATIO = 0.945;
+const MIDDLE_WEIGHT = 1/15;
 const LEASTLOOPFRAME = 30;
 let minLoopFrame = 50;
 let maxLoopFrame = 200;
@@ -36,6 +36,7 @@ var isVoicing = false;
 var playFrame = 0;
 var nextVoicePlayCode = 0;
 var nextVoicePlaySpeed = 1;
+var playOnce = false;
 
 var leftLoopFrame = 0;
 
@@ -159,12 +160,14 @@ function Randomn(min, max){
 
 /**
  * 배열의 평균 값을 반환하는 함수
- * @param {let} arr
- * @returns Average of Array
+ * @param {Array<number>} arr - 숫자 배열
+ * @returns {number} 배열의 평균 값
  */
-function Averages(arr){
-  var sum = 0;
-  for (let e in arr) sum += e;
+function Averages(arr) {
+  let sum = 0;
+  for (let e of arr) {
+    sum += e;
+  }
   return sum / arr.length;
 }
 
@@ -174,7 +177,7 @@ function Averages(arr){
  */
 function NextRandom(){
   let a = Averages(loopFrameArray);
-  let diff = maxLoopFrame - minLoopFrame;
+  let diff = (maxLoopFrame - minLoopFrame) / 2;
   let mid = (maxLoopFrame + minLoopFrame) / 2;
 
   mid *= DECREASE_RATIO;
@@ -292,10 +295,10 @@ function Start(){
  */
 function DoVoice(){
   leftLoopFrame = Randoms(minLoopFrame, maxLoopFrame);
-  console.log(`Voice! Next Loop Frame: ${leftLoopFrame}`);
+  console.log(`Voice! Next Loop Frame: ${leftLoopFrame} min: ${minLoopFrame}, max: ${maxLoopFrame}`);
+  loopFrameArray.push(leftLoopFrame);
   NextVoiceRandom();
   console.log(`다음은 ${nextVoicePlayCode} 번으로 전송합니다.`);
-  loopFrameArray.push(leftLoopFrame);
 
   activityCodes += '2'; // 음성을 재생
 
@@ -425,6 +428,7 @@ function ResetUpdate(){
   leftLoopFrame = 0;
   t = 0;
   isUpdating = false;
+  playOnce = false;
   console.log("===== 게임을 초기화 하였습니다. =====");
 }
 
@@ -458,7 +462,7 @@ function PlayOnReady(){
 };
 
 
-const COUNTDOWN_TIME = 9; // 카운트 다운 9초
+const COUNTDOWN_TIME = 8; // 카운트 다운 8초
 let leftCountDownFrame = COUNTDOWN_TIME * FRAME_PER_SECOND;
 /**
  * 카운트다운 중 주기적으로 실행될 함수
@@ -520,7 +524,10 @@ function PlayOnGame(){
     if (leftLoopFrame > 0){
       leftLoopFrame -= 1;
     } else {
-      DoVoice();
+      if (!playOnce){
+        DoVoice();
+        playOnce = true;
+      }
     }
   }
 
@@ -751,6 +758,7 @@ app.get('/ardIsVoicing', (req, res) => {
  */
 app.get('/ardIsNotVoicing', (req, res) => {
   isVoicing = false;
+  playOnce = false;
   console.log("아두이노에서 음성을 종료하였습니다.");
   res.status(200).json({string: "abcd"});
 });

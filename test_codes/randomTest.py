@@ -1,7 +1,8 @@
 import random
 
 loopFrameArray = [10]
-DECREASE_RATIO = 0.925
+DECREASE_RATIO = 0.95
+MIDDLE_WEIGHT = 1/15
 
 maxLoopFrame = 250
 minLoopFrame = 120
@@ -22,8 +23,8 @@ def NextRandom():
   mid *= DECREASE_RATIO
   diff *= DECREASE_RATIO
   
-  minLoopFrame = mid - diff + (mid - a)/10 if mid - diff + (mid - a)/10 >= atLeast else atLeast
-  maxLoopFrame = mid + diff + (mid - a)/10 if mid + diff + (mid - a)/10 >= atLeast else atLeast
+  minLoopFrame = mid - diff + (mid - a)*MIDDLE_WEIGHT if mid - diff + (mid - a)*MIDDLE_WEIGHT >= atLeast else atLeast
+  maxLoopFrame = mid + diff + (mid - a)*MIDDLE_WEIGHT if mid + diff + (mid - a)*MIDDLE_WEIGHT >= atLeast else atLeast
 
 for x in range(20):
   leftLoopFrame = Randoms(minLoopFrame, maxLoopFrame)
