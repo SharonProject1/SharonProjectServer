@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arduino Simulation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .servo {
+            width: 100px;
+            height: 20px;
+            background-color: lightgray;
+            margin: 50px auto;
+            position: relative;
+        }
+        .servo-head {
+            width: 20px;
+            height: 20px;
+            background-color: red;
+            border-radius: 50%;
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%) rotate(0deg);
+            transform-origin: bottom center;
+        }
+        .status {
+            text-align: center;
+            font-size: 1.2em;
+            margin-top: 20px;
+        }
+        .voice-status {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 1.2em;
+            color: blue;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Arduino Simulation</h1>
+
+    <div class="servo">
+        <div id="servo-head" class="servo-head"></div>
+    </div>
+    <div id="servo-status" class="status">Servo Position: 0°</div>
+    <div id="voice-status" class="voice-status">Voice Status: Not Speaking</div>
+    <div id="error-status" class="status error"></div>
+
+    <script>
+        // 로직 변수
+        let servoPosition = 0; // 현재 서보 위치 (0 ~ 180)
+        let isSpeaking = false; // 음성 재생 상태
+        const serverUrl = "http://sharonproject.ddns.net:5522";
+
+        // HTML 요소 참조
+        const servoHead = document.getElementById('servo-head');
+        const servoStatus = document.getElementById('servo-status');
+        const voiceStatus = document.getElementById('voice-status');
+        const errorStatus = document.getElementById('error-status');
+
+        // 서보 모터 동작 시뮬레이션
+        function moveServo(position) {
+            servoPosition = position;
+            servoHead.style.transform = `translateX(-50%) rotate(${position}deg)`;
+            servoStatus.textContent = `Servo Position: ${position}°`;
+        }
+
+        // 서버에 음성 상태 전송 (ardIsVoicing / ardIsNotVoicing)
+        async function notifyVoiceStatus(endpoint) {
+            try {
+                const response = await fetch(`${serverUrl}/${endpoint}`, { method: "GET" });
+                if (!response.ok) {
+                    throw new Error(`Server returned status: ${response.status}`);
+                }
+                console.log(`${endpoint} notified successfully.`);
+            } catch (error) {
+                console.error(`Error notifying ${endpoint}:`, error);
+                errorStatus.textContent = `Error notifying ${endpoint}: ${error.message}`;
+            }
+        }
+
+        // 음성 재생 시뮬레이션
+        function playVoice(voiceCode, duration) {
+            if (isSpeaking) {
+                voiceStatus.textContent = "Voice Status: Already Speaking...";
+                return;
+            }
+
+            // 음성 시작
+            isSpeaking = true;
+            voiceStatus.textContent = `Voice Status: Speaking (Voice Code ${voiceCode} ${duration})`;
+            notifyVoiceStatus("ardIsVoicing"); // 서버에 음성 재생 시작 알림
+
+            // 음성 종료
+            setTimeout(() => {
+                isSpeaking = false;
+                voiceStatus.textContent = "Voice Status: Not Speaking";
+                notifyVoiceStatus("ardIsNotVoicing"); // 서버에 음성 재생 종료 알림
+            }, duration);
+        }
+
+        // actionCode 처리 함수
+        function handleActionCode(actionCode, voiceCode, voiceSpeed) {
+            switch (actionCode) {
+                case "00":
+                    // 아무 동작 없음
+                    break;
+
+                case "010":
+                    // 게임 시작
+                    moveServo(0);
+                    break;
+
+                case "020":
+                    // 벽 바라봄 후 음성 재생
+                    moveServo(180);
+                    playVoice(voiceCode || 8, (3000 / (0.5 + (actionCode - 8)/10)));
+                    setTimeout(() => {moveServo(0);}, (3000 / (0.5 + (actionCode - 8)/10)) + 650);
+                    
+                    break;
+
+                case "030":
+                    // 벽 바라보기
+                    moveServo(180);
+                    break;
+
+                case "040":
+                    // 플레이어 바라보기
+                    moveServo(0);
+                    break;
+
+                case "050":
+                    // 시간 초과로 게임 종료
+                    break;
+
+                case "060":
+                    // 남은 플레이어가 없어 게임 종료
+                    break;
+
+                default:
+                    console.warn("Unknown actionCode:", actionCode);
+            }
+        }
+
+        // 서버에 요청 보내기
+        async function fetchActionCode() {
+            try {
+                const response = await fetch(`${serverUrl}/ard`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const actionCode = data.do || "00"; // 기본값 00
+                    const voiceCode = data.voiceCode || "8";
+                    const voiceSpeed = data.voiceSpeed || 1;
+
+                    errorStatus.textContent = ""; // 오류 메시지 초기화
+                    handleActionCode(actionCode, voiceCode, voiceSpeed);
+                } else {
+                    throw new Error(`Server returned status: ${response.status}`);
+                }
+            } catch (error) {
+                errorStatus.textContent = `Error fetching action code: ${error.message}`;
+                console.error("Fetch error:", error);
+            }
+        }
+
+        // 주기적 서버 요청
+        setInterval(fetchActionCode, 20);
+    </script>
+</body>
+</html>
