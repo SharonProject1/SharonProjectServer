@@ -9,12 +9,12 @@ const MAX_PLAYERS = 10;
 const MIN_PLAYERS = 3;
 const TIMEOUT_LIMIT = 50;  // *100ms 대기시간
 const FRAME_PER_SECOND = 60;
-const MAX_PLAY_TIME = 30; // 60? 초
+const MAX_PLAY_TIME = 45; // 60? 초
 
 // Random System
 const DECREASE_RATIO = 0.945;
 const MIDDLE_WEIGHT = 1/15;
-const LEASTLOOPFRAME = 30;
+const LEASTLOOPFRAME = 40;
 let minLoopFrame = 50;
 let maxLoopFrame = 200;
 let loopFrameArray = [];
@@ -37,6 +37,7 @@ var playFrame = 0;
 var nextVoicePlayCode = 0;
 var nextVoicePlaySpeed = 1;
 var playOnce = false;
+var trialCount = 1;
 
 var leftLoopFrame = 0;
 
@@ -149,16 +150,6 @@ function Randoms(min, max){
 }
 
 /**
- * 두 정수 사이의 랜덤 정수를 구하는 함수
- * @param {int} min 
- * @param {int} max 
- * @returns RandomInteger
- */
-function Randomn(min, max){
-  return Math.floor((max-min+1) * Math.random() + min);
-}
-
-/**
  * 배열의 평균 값을 반환하는 함수
  * @param {Array<number>} arr - 숫자 배열
  * @returns {number} 배열의 평균 값
@@ -187,15 +178,47 @@ function NextRandom(){
   maxLoopFrame = Math.max(mid + diff + (mid - a)*MIDDLE_WEIGHT, LEASTLOOPFRAME);
 }
 
-/**
- * 다음 음성의 속도와 속성을 무작위로 결정하는 함수
- * @returns void
- */
-function NextVoiceRandom(){
-  nextVoicePlayCode = Randomn(8, 23);
 
-  // 랜덤 알고리즘 새로 제작
-}
+/**
+ * 다음 음성의 속도를 무작위로 결정하는 함수
+ * @param {Number} trial 
+ * @param {*} maxTrials 
+ * @param {*} biasFactor 
+ * @param {*} sharpness 
+ * @returns 
+ */
+function NextVoiceRandom(trial, maxTrials = 6, biasFactor = 1.5, sharpness = 1.05) {
+  // 초기 범위 설정
+  const startRange = 8;
+  let endRange = 23;
+
+  // 시행 횟수 기반 변화 함수
+  const f_t = Math.pow(trial / maxTrials, -1 / sharpness);
+
+  // 가중치 계산
+  const weights = [];
+  const numbers = [];
+  for (let num = startRange; num <= endRange; num++) {
+      const weight = Math.abs(Math.pow((endRange - num + 1) / (endRange - startRange + 1), f_t / biasFactor) *
+                     Math.pow(1 - trial / 25, Math.pow(24 - num, 1.25)));
+      weights.push(weight);
+      numbers.push(num);
+  }
+
+  console.log(weights);
+
+  // 랜덤 선택 (가중치 기반)
+  const totalWeight = weights.reduce((acc, w) => acc + w, 0);
+  const randomValue = Math.random() * totalWeight;
+
+  let cumulativeWeight = 0;
+  for (let i = 0; i < weights.length; i++) {
+      cumulativeWeight += weights[i];
+      if (randomValue <= cumulativeWeight) {
+          return numbers[i];
+      }
+  }
+};
 
 /**
  * 작은 값 부터 큰 값 순으로 정렬
@@ -297,7 +320,7 @@ function DoVoice(){
   leftLoopFrame = Randoms(minLoopFrame, maxLoopFrame);
   console.log(`Voice! Next Loop Frame: ${leftLoopFrame} min: ${minLoopFrame}, max: ${maxLoopFrame}`);
   loopFrameArray.push(leftLoopFrame);
-  NextVoiceRandom();
+  nextVoicePlayCode = NextVoiceRandom(trialCount++);
   console.log(`다음은 ${nextVoicePlayCode} 번으로 전송합니다.`);
 
   activityCodes += '2'; // 음성을 재생
@@ -429,7 +452,10 @@ function ResetUpdate(){
   t = 0;
   isUpdating = false;
   playOnce = false;
+  trialCount = 1;
+  console.log("===============================");
   console.log("===== 게임을 초기화 하였습니다. =====");
+  console.log("===============================");
 }
 
 /**
@@ -475,12 +501,15 @@ function PlayOnCounting(){
   if (leftCountDownFrame > 0){
     leftCountDownFrame -= 1;
     if (leftCountDownFrame === 0) console.log("곧 시작합니다!");
-  } else if (leftCountDownFrame === 4 * FRAME_PER_SECOND){
-    activityCodes += '1';
   } else {
     Start(); // Run only once
     leftLoopFrame = 10; // Default
     loopFrameArray.push(leftLoopFrame);
+  }
+
+  if (leftCountDownFrame === 300){
+    activityCodes += '1';
+    console.log('1 코드 추가.');
   }
 };
 
